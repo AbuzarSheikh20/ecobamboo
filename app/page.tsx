@@ -1,20 +1,187 @@
-"use client"
+"use client";
 
-import Image from "next/image"
-import { Star, ShoppingCart, Heart, Play, Check, ChevronLeft, ChevronRight, Plus, Truck, Undo2, ShieldCheck, Headphones } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { useEffect, useState, useRef } from "react"
-import SplitType from "split-type"
-import AnimatedPrice from "@/components/animated-price"
-import ProductImageWithLens from "@/components/product-image-with-lens"
-import gsap from "gsap"
-import RotatingScrollText from "@/components/rotating-scroll-text"
-import ScrollTrigger from "gsap/ScrollTrigger"
+import Image from "next/image";
+import {
+  Star,
+  ShoppingCart,
+  Heart,
+  Play,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Truck,
+  Undo2,
+  ShieldCheck,
+  Headphones,
+  Lock,
+  Share2,
+  X,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { useEffect, useState, useRef, useLayoutEffect } from "react";
+import SplitType from "split-type";
+import AnimatedPrice from "@/components/animated-price";
+import ProductImageWithLens from "@/components/product-image-with-lens";
+import gsap from "gsap";
+import RotatingScrollText from "@/components/rotating-scroll-text";
+import ScrollTrigger from "gsap/ScrollTrigger";
+import ScrollingMarquee from "../components/scrolling-marquee";
+import {
+  Drawer,
+  DrawerTrigger,
+  DrawerContent,
+  DrawerClose,
+} from "../components/ui/drawer";
+
+// 1. ReviewsCarousel component (place before export default):
+const reviews = [
+  {
+    text: `"I bought bamboo wall décor in small size from EcoBambo, and it looks amazing! It adds a natural touch to my kitchen and blends perfectly with my coastal farmhouse décor. The quality is great, and it's an affordable cheap wall décor option. Highly recommend for anyone looking to upgrade their room wall design!" Try Eco Bamboo for home decor.`,
+    name: "Safder Ali",
+    profession: "Mechanical Engineering",
+    avatar:
+      "/pic/Big Bamboo Household Standing Plant Pot/customised/1_d9da831c-eaed-4578-b0c3-93fce3954a7a.png",
+  },
+  {
+    text: `I bought a bamboo flower pot with pots from EcoBambo and it's absolutely stunning It fits with my indoor succulents and looks amazing as an outdoor flower planter. The craftsmanship is far better than other flower pots for sale, and the natural bamboo touch gives it a unique charm. Eco-friendly and makes my space feel more refreshing.`,
+    name: "Kingsley Chandler",
+    profession: "Environmental Economist",
+    avatar:
+      "/pic/Big Bamboo Household Standing Plant Pot/customised/2_3f1f1dc6-fe56-4494-a5d7-5679a8b23f85.png",
+  },
+  {
+    text: `"I bought a bamboo hanging wall décor (big size) from EcoBambo, and it's stunning! It blends beautifully with my lounge wall art and home wall art décor. The quality is far better than Wayfair and Amazon wall décor—natural, stylish, and eco-friendly!" It's elegant, eco-friendly, and far better than any regular indoor plant UK décor!"`,
+    name: "Adnan A.",
+    profession: "Graphic Designer",
+    avatar:
+      "/pic/Big Bamboo Household Standing Plant Pot/customised/3_2baa617f-2e80-4a33-9b18-c4e720e3a6a0.png",
+  },
+  {
+    text: `I bought a large bamboo flower pot from EcoBambo and it has completely transformed my space. It looks perfect in my flower pots garden and also stands beautifully as a standing plant pot. Whether indoors or as part of my flower pots for outside, this piece is an absolute showstopper.Truly this Eco Bambo Duarble for my house. "Thanks!`,
+    name: "Abid Hussain",
+    profession: "Travel Tourism",
+    avatar:
+      "/pic/Big Bamboo Household Standing Plant Pot/customised/4_acd518b5-bb47-4046-94ff-7d6d0f7b372d.png",
+  },
+  {
+    text: `EcoBamboo has transformed my space with its stunning collection The Bamboo Bed is elegant the Sofa is stylish and the Baby Chair and Bamboo Baby Bed are perfect for my little one. The Bamboo Chair is sturdy and beautiful while the Bamboo Sofa Tray Table adds convenience. Every piece is eco-friendly durable and crafted to perfection.`,
+    name: "John Doe",
+    profession: "Tech Leader",
+    avatar:
+      "/pic/Big Bamboo Household Standing Plant Pot/customised/2_3f1f1dc6-fe56-4494-a5d7-5679a8b23f85.png",
+  },
+  {
+    text: `I had a Bamboo Canopy and a Bamboo Roof on my Pergola built by EcoBamboo and it looks amazing They also constructed a Bamboo House which is not only eco-friendly but also beautifully designed. My Bamboo Gazebo has become the perfect spot for BBQ gatherings in my home. EcoBamboo's work is truly impressive!`,
+    name: "David K",
+    profession: "Project Creater",
+    avatar:
+      "/pic/Big Bamboo Household Standing Plant Pot/customised/1_d9da831c-eaed-4578-b0c3-93fce3954a7a.png",
+  },
+];
+
+function ReviewsCarousel() {
+  const [start, setStart] = useState(0);
+  const visible = 3;
+  const canPrev = start > 0;
+  const canNext = start + visible < reviews.length;
+
+  const handlePrev = () => {
+    if (canPrev) setStart(start - 1);
+  };
+  const handleNext = () => {
+    if (canNext) setStart(start + 1);
+  };
+
+  return (
+    <div className="relative">
+      <div
+        className="flex gap-8 overflow-x-auto scrollbar-none pb-4 md:justify-center"
+        style={{ scrollbarWidth: "none" }}
+      >
+        {reviews.slice(start, start + visible).map((review, i) => (
+          <div
+            key={i}
+            className="min-w-[340px] max-w-sm bg-white rounded-2xl shadow-lg p-8 flex-shrink-0 flex flex-col justify-between items-center text-center mx-auto border border-gray-100"
+          >
+            <div className="mb-4">
+              <span className="text-3xl text-gray-400 mb-2 block">
+                &#8220;&#8221;
+              </span>
+              <p className="text-gray-900 text-lg leading-relaxed font-normal">
+                {review.text}
+              </p>
+            </div>
+            <div className="flex justify-center mb-4">
+              {[...Array(5)].map((_, j) => (
+                <Star
+                  key={j}
+                  className="w-5 h-5 fill-[#B8860B] text-[#B8860B]"
+                />
+              ))}
+            </div>
+            <div className="flex flex-col items-center mt-2">
+              <div className="relative w-16 h-16 rounded-full overflow-hidden mb-2 border-2 border-[#B8860B]">
+                <Image
+                  src={review.avatar}
+                  alt={review.name}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              <div>
+                <div className="font-semibold italic text-gray-900 text-lg">
+                  {review.name}
+                </div>
+                <div className="text-gray-600 text-sm font-medium">
+                  {review.profession}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="flex justify-center gap-2 mt-6">
+        <Button
+          variant="outline"
+          size="icon"
+          className={`rounded-full bg-[#B8860B] text-white border-[#B8860B] ${
+            !canPrev ? "opacity-50 cursor-not-allowed" : ""
+          }`}
+          onClick={handlePrev}
+          disabled={!canPrev}
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          className={`rounded-full bg-[#B8860B] text-white border-[#B8860B] ${
+            !canNext ? "opacity-50 cursor-not-allowed" : ""
+          }`}
+          onClick={handleNext}
+          disabled={!canNext}
+        >
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+      </div>
+      <style jsx global>{`
+        .scrollbar-none::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-none {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
+    </div>
+  );
+}
 
 export default function ProductPage() {
   const animateHeading = (heading: HTMLElement) => {
-    const chars = heading.querySelectorAll('.heading-char');
+    const chars = heading.querySelectorAll(".heading-char");
     if (!chars.length) return;
     const handleMouseMove = (e: MouseEvent) => {
       const rect = heading.getBoundingClientRect();
@@ -29,7 +196,7 @@ export default function ProductPage() {
         (window as any).gsap.to(char, {
           y,
           duration: 0.3,
-          ease: 'power3.out',
+          ease: "power3.out",
         });
       });
     };
@@ -38,12 +205,12 @@ export default function ProductPage() {
         (window as any).gsap.to(char, {
           y: 0,
           duration: 1.2,
-          ease: 'elastic.out(1,0.2)',
+          ease: "elastic.out(1,0.2)",
         });
       });
     };
-    heading.addEventListener('mousemove', handleMouseMove);
-    heading.addEventListener('mouseleave', handleMouseLeave);
+    heading.addEventListener("mousemove", handleMouseMove);
+    heading.addEventListener("mouseleave", handleMouseLeave);
   };
 
   const priceRef = useRef<HTMLDivElement>(null);
@@ -51,34 +218,36 @@ export default function ProductPage() {
   const price = "$24.99";
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     let observer: IntersectionObserver | null = null;
-    import('gsap').then((mod) => {
+    import("gsap").then((mod) => {
       (window as any).gsap = mod.gsap;
-      document.querySelectorAll('h1, h2, h3').forEach((heading) => {
+      document.querySelectorAll("h1, h2, h3").forEach((heading) => {
         animateHeading(heading as HTMLElement);
       });
       if (priceRef.current) {
         const animatePrice = () => {
-          const split = new SplitType(priceRef.current!, { types: 'chars' });
-          const chars = priceRef.current!.querySelectorAll('.char');
+          const split = new SplitType(priceRef.current!, { types: "chars" });
+          const chars = priceRef.current!.querySelectorAll(".char");
           const mid = Math.floor(chars.length / 2);
           mod.gsap.set(chars, { opacity: 1 });
           mod.gsap.fromTo(
             chars,
             (i: number) => {
-              if (i < mid / 2) return { x: -100, scale: 2, filter: 'blur(16px)', opacity: 0 };
-              if (i > mid + mid / 2) return { x: 100, scale: 2, filter: 'blur(16px)', opacity: 0 };
-              return { y: -100, scale: 2, filter: 'blur(16px)', opacity: 0 };
+              if (i < mid / 2)
+                return { x: -100, scale: 2, filter: "blur(16px)", opacity: 0 };
+              if (i > mid + mid / 2)
+                return { x: 100, scale: 2, filter: "blur(16px)", opacity: 0 };
+              return { y: -100, scale: 2, filter: "blur(16px)", opacity: 0 };
             },
             {
               x: 0,
               y: 0,
               scale: 1,
-              filter: 'blur(0px)',
+              filter: "blur(0px)",
               opacity: 1,
               duration: 1.1,
-              ease: 'expo.out',
+              ease: "expo.out",
               stagger: 0.04,
             }
           );
@@ -110,34 +279,27 @@ export default function ProductPage() {
     "/pic/Large Bamboo Hanging Wall/customised/Untitled_design_12_19332669-b699-4445-9a49-9a4ca332cd15.png",
     "/pic/Large Bamboo Hanging Wall/customised/2-Photoroom_2.png",
     "/pic/Large Bamboo Hanging Wall/customised/Untitled_design_13_b305fefb-2711-4f88-a992-7308c6c0103b.png",
-    "/pic/Large Bamboo Hanging Wall/customised/2_c29d7665-859f-4752-bd03-089fa2bcb6a1.png"
-  ];
-
-  // Casual Farmhouse Decor House Plants for Sale!
-  const farmhouseImages = [
-    "/pic/Big Bamboo Household Standing Plant Pot/big-bamboo-household-standing-plant-pot-perfect-for-home-garden-118593.jpg",
-    "/pic/Big Bamboo Household Standing Plant Pot/big-bamboo-household-standing-plant-pot-perfect-for-home-garden-835078.jpg",
-    "/pic/Big Bamboo Household Standing Plant Pot/eco-bambo-bamboo-big-flower-pot-big-bamboo-household-standing-plant-pot-perfect-for-home-garden-1155268445.png"
+    "/pic/Large Bamboo Hanging Wall/customised/2_c29d7665-859f-4752-bd03-089fa2bcb6a1.png",
   ];
 
   // Product Showcase Section (Small/Big Pot)
   const potImages = [
     "/pic/Big Bamboo Household Standing Plant Pot/eco-bambo-bamboo-big-flower-pot-deep-half-white-hint-ntural-big-bamboo-household-standing-plant-pot-perfect-for-home-garden-1155922051.jpg",
-    "/pic/Big Bamboo Household Standing Plant Pot/eco-bambo-bamboo-big-flower-pot-red-big-bamboo-household-standing-plant-pot-perfect-for-home-garden-1155268441.jpg"
+    "/pic/Big Bamboo Household Standing Plant Pot/eco-bambo-bamboo-big-flower-pot-red-big-bamboo-household-standing-plant-pot-perfect-for-home-garden-1155268441.jpg",
   ];
 
   // Bathroom Art Decor Section
   const bathroomImages = [
     "/pic/Large Bamboo Hanging Wall/eco-bambo-big-bamboo-hanging-wall-green-large-bamboo-hanging-wall-unique-affordable-wall-art-for-home-1151184227.jpg",
     "/pic/Large Bamboo Hanging Wall/eco-bambo-big-bamboo-hanging-wall-green-large-bamboo-hanging-wall-unique-affordable-wall-art-for-home-1151184226.png",
-    "/pic/Large Bamboo Hanging Wall/eco-bambo-big-bamboo-hanging-wall-green-large-bamboo-hanging-wall-unique-affordable-wall-art-for-home-1146185126.png"
+    "/pic/Large Bamboo Hanging Wall/eco-bambo-big-bamboo-hanging-wall-green-large-bamboo-hanging-wall-unique-affordable-wall-art-for-home-1146185126.png",
   ];
 
   // Enhanced Customer Reviews Section (avatars)
   const reviewAvatars = [
     "/pic/Big Bamboo Household Standing Plant Pot/customised/1_d9da831c-eaed-4578-b0c3-93fce3954a7a.png",
     "/pic/Big Bamboo Household Standing Plant Pot/customised/2_3f1f1dc6-fe56-4494-a5d7-5679a8b23f85.png",
-    "/pic/Big Bamboo Household Standing Plant Pot/customised/3_2baa617f-2e80-4a33-9b18-c4e720e3a6a0.png"
+    "/pic/Big Bamboo Household Standing Plant Pot/customised/3_2baa617f-2e80-4a33-9b18-c4e720e3a6a0.png",
   ];
 
   // Popular Products Section
@@ -145,12 +307,12 @@ export default function ProductPage() {
     "/pic/Large Bamboo Hanging Wall/eco-bambo-big-bamboo-hanging-wall-green-large-bamboo-hanging-wall-unique-affordable-wall-art-for-home-1151184227.jpg",
     "/pic/Big Bamboo Household Standing Plant Pot/eco-bambo-bamboo-big-flower-pot-big-bamboo-household-standing-plant-pot-perfect-for-home-garden-1151184222.png",
     "/pic/Big Bamboo Household Standing Plant Pot/eco-bambo-bamboo-big-flower-pot-deep-half-white-hint-ntural-big-bamboo-household-standing-plant-pot-perfect-for-home-garden-1155922051.jpg",
-    "/pic/Big Bamboo Household Standing Plant Pot/eco-bambo-bamboo-big-flower-pot-red-big-bamboo-household-standing-plant-pot-perfect-for-home-garden-1155268441.jpg"
+    "/pic/Big Bamboo Household Standing Plant Pot/eco-bambo-bamboo-big-flower-pot-red-big-bamboo-household-standing-plant-pot-perfect-for-home-garden-1155268441.jpg",
   ];
 
   const bannerImages = [
     "/pic/Large Bamboo Hanging Wall/eco-bambo-big-bamboo-hanging-wall-green-large-bamboo-hanging-wall-unique-affordable-wall-art-for-home-1151184226.png",
-    "/pic/Big Bamboo Household Standing Plant Pot/eco-bambo-bamboo-big-flower-pot-big-bamboo-household-standing-plant-pot-perfect-for-home-garden-1151184222.png"
+    "/pic/Big Bamboo Household Standing Plant Pot/eco-bambo-bamboo-big-flower-pot-big-bamboo-household-standing-plant-pot-perfect-for-home-garden-1151184222.png",
   ];
   const [currentBanner, setCurrentBanner] = useState(0);
   useEffect(() => {
@@ -166,10 +328,12 @@ export default function ProductPage() {
     "/pic/Large Bamboo Hanging Wall/eco-bambo-big-bamboo-hanging-wall-green-large-bamboo-hanging-wall-unique-affordable-wall-art-for-home-1151184227.jpg",
     "/pic/Large Bamboo Hanging Wall/eco-bambo-big-bamboo-hanging-wall-green-large-bamboo-hanging-wall-unique-affordable-wall-art-for-home-1151184226.png",
     "/pic/Large Bamboo Hanging Wall/eco-bambo-big-bamboo-hanging-wall-green-large-bamboo-hanging-wall-unique-affordable-wall-art-for-home-1146185126.png",
-    "/pic/Large Bamboo Hanging Wall/eco-bambo-big-bamboo-hanging-wall-large-bamboo-hanging-wall-unique-affordable-wall-art-for-home-1154412368.png"
+    "/pic/Large Bamboo Hanging Wall/eco-bambo-big-bamboo-hanging-wall-large-bamboo-hanging-wall-unique-affordable-wall-art-for-home-1154412368.png",
   ];
   const [selectedImage, setSelectedImage] = useState(0);
+  const [selectedColor, setSelectedColor] = useState(0); // 0: Green, 1: Bamboo Natural
   const [quantity, setQuantity] = useState(1);
+  const [quantityAnim, setQuantityAnim] = useState(false);
   const [selectedSize, setSelectedSize] = useState("Medium");
 
   const detailRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -183,14 +347,22 @@ export default function ProductPage() {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
-            const direction = entry.boundingClientRect.top < lastY ? 'up' : 'down';
+            const direction =
+              entry.boundingClientRect.top < lastY ? "up" : "down";
             lastY = entry.boundingClientRect.top;
             gsap.fromTo(
               detailRefs.current,
-              direction === 'up'
+              direction === "up"
                 ? { opacity: 0, x: 0, y: -80 }
                 : { opacity: 0, x: 0, y: 80 },
-              { opacity: 1, x: 0, y: 0, duration: 0.9, ease: 'back.out(1.7)', stagger: 0.13 }
+              {
+                opacity: 1,
+                x: 0,
+                y: 0,
+                duration: 0.9,
+                ease: "back.out(1.7)",
+                stagger: 0.13,
+              }
             );
           }
         });
@@ -215,60 +387,196 @@ export default function ProductPage() {
   const step3ImgRef = useRef<HTMLDivElement>(null);
   const step4ImgRef = useRef<HTMLDivElement>(null);
 
+  // 1. Add refs for heading and RotatingScrollText for each step:
+  const step1HeadingRef = useRef(null);
+  const step2HeadingRef = useRef(null);
+  const step3HeadingRef = useRef(null);
+  const step4HeadingRef = useRef(null);
+  const step1ScrollTextRef = useRef(null);
+  const step2ScrollTextRef = useRef(null);
+  const step3ScrollTextRef = useRef(null);
+  const step4ScrollTextRef = useRef(null);
+
   useEffect(() => {
     const steps = [
-      { para: step1ParaRef, img: step1ImgRef },
-      { para: step2ParaRef, img: step2ImgRef },
-      { para: step3ParaRef, img: step3ImgRef },
-      { para: step4ParaRef, img: step4ImgRef },
+      {
+        img: document.getElementById("step-img-1"),
+        heading: step1HeadingRef.current,
+        para: step1ParaRef.current,
+        scrollText: step1ScrollTextRef.current,
+        circle: document.getElementById("step-circle-1"),
+        stepNum: document.getElementById("step-num-1"),
+      },
+      {
+        img: document.getElementById("step-img-2"),
+        heading: step2HeadingRef.current,
+        para: step2ParaRef.current,
+        scrollText: step2ScrollTextRef.current,
+        circle: document.getElementById("step-circle-2"),
+        stepNum: document.getElementById("step-num-2"),
+      },
+      {
+        img: document.getElementById("step-img-3"),
+        heading: step3HeadingRef.current,
+        para: step3ParaRef.current,
+        scrollText: step3ScrollTextRef.current,
+        circle: document.getElementById("step-circle-3"),
+        stepNum: document.getElementById("step-num-3"),
+      },
+      {
+        img: document.getElementById("step-img-4"),
+        heading: step4HeadingRef.current,
+        para: step4ParaRef.current,
+        scrollText: step4ScrollTextRef.current,
+        circle: document.getElementById("step-circle-4"),
+        stepNum: document.getElementById("step-num-4"),
+      },
     ];
-    steps.forEach(({ para, img }) => {
-      if (para.current) {
-        gsap.set(para.current, { opacity: 0, y: 80 });
-        ScrollTrigger.create({
-          trigger: para.current,
-          start: "top 80%",
-          onEnter: () => {
-            gsap.fromTo(
-              para.current,
-              { opacity: 0, y: 80 },
-              { opacity: 1, y: 0, duration: 0.6, ease: "power4.out" }
-            );
+    steps.forEach((step, idx) => {
+      // Animate image
+      if (step.img) {
+        gsap.set(step.img, {
+          opacity: 0,
+          scaleY: 0.2,
+          transformOrigin: idx % 2 === 0 ? "top center" : "bottom center",
+        });
+        gsap.to(step.img, {
+          scrollTrigger: {
+            trigger: step.img,
+            start: "top 60%",
           },
-          onLeaveBack: () => {
-            gsap.to(para.current, { opacity: 0, y: 80, duration: 0.3 });
-          },
+          opacity: 1,
+          scaleY: 1,
+          duration: 0.9,
+          ease: "expo.out",
         });
       }
-      if (img.current) {
-        gsap.set(img.current, { opacity: 0, y: 80 });
+      // Animate heading
+      if (step.heading) {
+        gsap.set(step.heading, { opacity: 0, y: 40 });
+        gsap.to(step.heading, {
+          scrollTrigger: {
+            trigger: step.heading,
+            start: "top 60%",
+          },
+          opacity: 1,
+          y: 0,
+          duration: 0.7,
+          ease: "expo.out",
+        });
+      }
+      // Animate paragraph
+      if (step.para) {
+        gsap.set(step.para, { opacity: 0, y: 40 });
+        gsap.to(step.para, {
+          scrollTrigger: {
+            trigger: step.para,
+            start: "top 60%",
+          },
+          opacity: 1,
+          y: 0,
+          duration: 0.7,
+          ease: "expo.out",
+        });
+      }
+      // Animate rotating/scrolling text
+      if (step.scrollText) {
+        gsap.set(step.scrollText, { opacity: 0, y: 40 });
+        gsap.to(step.scrollText, {
+          scrollTrigger: {
+            trigger: step.scrollText,
+            start: "top 60%",
+          },
+          opacity: 1,
+          y: 0,
+          duration: 0.7,
+          ease: "expo.out",
+        });
+      }
+      // Animate circle and stepNum (existing logic)
+      if (step.circle && step.stepNum) {
+        gsap.set(step.circle, {
+          opacity: 0,
+          scale: 1,
+          filter: "blur(8px)",
+          borderColor: "#000",
+          background: "#000",
+        });
+        gsap.set(step.stepNum, { opacity: 0, color: "transparent" });
         ScrollTrigger.create({
-          trigger: img.current,
-          start: "top 80%",
+          trigger: step.circle,
+          start: "top 70%",
           onEnter: () => {
-            gsap.fromTo(
-              img.current,
-              { opacity: 0, y: 80 },
-              { opacity: 1, y: 0, duration: 0.7, ease: "power4.out" }
-            );
+            gsap.to(step.circle, {
+              opacity: 1,
+              scale: 1,
+              filter: "blur(0px)",
+              borderColor: "#FFD700",
+              background: "linear-gradient(135deg,#FFD700 60%,#FFDF80 100%)",
+              duration: 0.7,
+              ease: "expo.out",
+            });
+            gsap.to(step.stepNum, {
+              opacity: 1,
+              color: "#B8860B",
+              duration: 0.5,
+              ease: "expo.out",
+              onStart: () => {
+                if (step.stepNum)
+                  step.stepNum.classList.remove("text-transparent");
+              },
+            });
           },
           onLeaveBack: () => {
-            gsap.to(img.current, { opacity: 0, y: 80, duration: 0.3 });
+            gsap.to(step.circle, {
+              opacity: 0,
+              scale: 1,
+              filter: "blur(8px)",
+              borderColor: "#000",
+              background: "#000",
+              duration: 0.5,
+              ease: "expo.in",
+            });
+            gsap.to(step.stepNum, {
+              opacity: 0,
+              color: "transparent",
+              duration: 0.3,
+              ease: "expo.in",
+            });
           },
+          toggleActions: "play none none reverse",
         });
       }
     });
     return () => {
-      ScrollTrigger.getAll().forEach(t => t.kill());
+      ScrollTrigger.getAll().forEach((t) => t.kill());
     };
   }, []);
 
   // --- Animation refs for post-steps sections ---
-  const showcaseRefs = [useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null)];
-  const bathroomCardRefs = [useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null)];
-  const reviewRefs = [useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null)];
-  const popularCardRefs = Array.from({length: 8}, () => useRef<HTMLDivElement>(null));
-  const featureRefs = [useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null)];
+  const showcaseRefs = [
+    useRef<HTMLDivElement>(null),
+    useRef<HTMLDivElement>(null),
+  ];
+  const bathroomCardRefs = [
+    useRef<HTMLDivElement>(null),
+    useRef<HTMLDivElement>(null),
+    useRef<HTMLDivElement>(null),
+  ];
+  const reviewRefs = [
+    useRef<HTMLDivElement>(null),
+    useRef<HTMLDivElement>(null),
+    useRef<HTMLDivElement>(null),
+  ];
+  const popularCardRefs = Array.from({ length: 8 }, () =>
+    useRef<HTMLDivElement>(null)
+  );
+  const featureRefs = [
+    useRef<HTMLDivElement>(null),
+    useRef<HTMLDivElement>(null),
+    useRef<HTMLDivElement>(null),
+    useRef<HTMLDivElement>(null),
+  ];
 
   useEffect(() => {
     // Product Showcase
@@ -278,8 +586,16 @@ export default function ProductPage() {
         ScrollTrigger.create({
           trigger: ref.current,
           start: "top 85%",
-          onEnter: () => gsap.to(ref.current, { opacity: 1, y: 0, duration: 0.7, delay: i * 0.1, ease: "power4.out" }),
-          onLeaveBack: () => gsap.to(ref.current, { opacity: 0, y: 60, duration: 0.3 }),
+          onEnter: () =>
+            gsap.to(ref.current, {
+              opacity: 1,
+              y: 0,
+              duration: 0.7,
+              delay: i * 0.1,
+              ease: "power4.out",
+            }),
+          onLeaveBack: () =>
+            gsap.to(ref.current, { opacity: 0, y: 60, duration: 0.3 }),
         });
       }
     });
@@ -290,8 +606,16 @@ export default function ProductPage() {
         ScrollTrigger.create({
           trigger: ref.current,
           start: "top 90%",
-          onEnter: () => gsap.to(ref.current, { opacity: 1, y: 0, duration: 0.7, delay: i * 0.12, ease: "power4.out" }),
-          onLeaveBack: () => gsap.to(ref.current, { opacity: 0, y: 60, duration: 0.3 }),
+          onEnter: () =>
+            gsap.to(ref.current, {
+              opacity: 1,
+              y: 0,
+              duration: 0.7,
+              delay: i * 0.12,
+              ease: "power4.out",
+            }),
+          onLeaveBack: () =>
+            gsap.to(ref.current, { opacity: 0, y: 60, duration: 0.3 }),
         });
       }
     });
@@ -302,8 +626,16 @@ export default function ProductPage() {
         ScrollTrigger.create({
           trigger: ref.current,
           start: "top 90%",
-          onEnter: () => gsap.to(ref.current, { opacity: 1, y: 0, duration: 0.7, delay: i * 0.13, ease: "power4.out" }),
-          onLeaveBack: () => gsap.to(ref.current, { opacity: 0, y: 60, duration: 0.3 }),
+          onEnter: () =>
+            gsap.to(ref.current, {
+              opacity: 1,
+              y: 0,
+              duration: 0.7,
+              delay: i * 0.13,
+              ease: "power4.out",
+            }),
+          onLeaveBack: () =>
+            gsap.to(ref.current, { opacity: 0, y: 60, duration: 0.3 }),
         });
       }
     });
@@ -314,8 +646,16 @@ export default function ProductPage() {
         ScrollTrigger.create({
           trigger: ref.current,
           start: "top 95%",
-          onEnter: () => gsap.to(ref.current, { opacity: 1, y: 0, duration: 0.6, delay: i * 0.07, ease: "power4.out" }),
-          onLeaveBack: () => gsap.to(ref.current, { opacity: 0, y: 60, duration: 0.2 }),
+          onEnter: () =>
+            gsap.to(ref.current, {
+              opacity: 1,
+              y: 0,
+              duration: 0.6,
+              delay: i * 0.07,
+              ease: "power4.out",
+            }),
+          onLeaveBack: () =>
+            gsap.to(ref.current, { opacity: 0, y: 60, duration: 0.2 }),
         });
       }
     });
@@ -326,12 +666,370 @@ export default function ProductPage() {
         ScrollTrigger.create({
           trigger: ref.current,
           start: "top 98%",
-          onEnter: () => gsap.to(ref.current, { opacity: 1, y: 0, scale: 1, duration: 0.7, delay: i * 0.09, ease: "expo.out" }),
-          onLeaveBack: () => gsap.to(ref.current, { opacity: 0, y: 40, scale: 0.85, duration: 0.2 }),
+          onEnter: () =>
+            gsap.to(ref.current, {
+              opacity: 1,
+              y: 0,
+              scale: 1,
+              duration: 0.7,
+              delay: i * 0.09,
+              ease: "expo.out",
+            }),
+          onLeaveBack: () =>
+            gsap.to(ref.current, {
+              opacity: 0,
+              y: 40,
+              scale: 0.85,
+              duration: 0.2,
+            }),
         });
       }
     });
-    return () => { ScrollTrigger.getAll().forEach(t => t.kill()); };
+    return () => {
+      ScrollTrigger.getAll().forEach((t) => t.kill());
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const steps = [1, 2, 3, 4];
+    // Animate golden timeline overlay
+    const goldenLine = document.getElementById("golden-timeline");
+    if (goldenLine) {
+      gsap.set(goldenLine, { height: "0%" });
+      gsap.to(goldenLine, {
+        scrollTrigger: {
+          trigger: goldenLine.parentElement,
+          start: "top 40%",
+          end: "bottom center",
+          scrub: true,
+        },
+        height: "100%",
+        ease: "none",
+      });
+    }
+    steps.forEach((step, idx) => {
+      const circle = document.getElementById(`step-circle-${step}`);
+      const stepNum = document.getElementById(`step-num-${step}`);
+      if (circle && stepNum) {
+        gsap.set(circle, {
+          opacity: 0,
+          scale: 1,
+          filter: "blur(8px)",
+          borderColor: "#000",
+          background: "#000",
+        });
+        gsap.set(stepNum, { opacity: 0, color: "transparent" });
+        ScrollTrigger.create({
+          trigger: circle,
+          start: "top 70%",
+          onEnter: () => {
+            gsap.to(circle, {
+              opacity: 1,
+              scale: 1,
+              filter: "blur(0px)",
+              borderColor: "#FFD700",
+              background: "linear-gradient(135deg,#FFD700 60%,#FFDF80 100%)",
+              duration: 0.7,
+              ease: "expo.out",
+            });
+            gsap.to(stepNum, {
+              opacity: 1,
+              color: "#B8860B",
+              duration: 0.5,
+              ease: "expo.out",
+              onStart: () => {
+                stepNum.classList.remove("text-transparent");
+              },
+            });
+          },
+          onLeaveBack: () => {
+            gsap.to(circle, {
+              opacity: 0,
+              scale: 1,
+              filter: "blur(8px)",
+              borderColor: "#000",
+              background: "#000",
+              duration: 0.5,
+              ease: "expo.in",
+            });
+            gsap.to(stepNum, {
+              opacity: 0,
+              color: "transparent",
+              duration: 0.3,
+              ease: "expo.in",
+            });
+          },
+          toggleActions: "play none none reverse",
+        });
+      }
+      const img = document.getElementById(`step-img-${step}`);
+      if (img) {
+        gsap.set(img, {
+          opacity: 0,
+          scaleY: 0.2,
+          transformOrigin: idx % 2 === 0 ? "top center" : "bottom center",
+        });
+        gsap.to(img, {
+          scrollTrigger: {
+            trigger: img,
+            start: "top 60%",
+          },
+          opacity: 1,
+          scaleY: 1,
+          duration: 0.9,
+          ease: "expo.out",
+        });
+      }
+    });
+  }, []);
+
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    if (drawerOpen) {
+      const el = document.getElementById("store-info-animate");
+      if (el) {
+        gsap.fromTo(
+          el.children,
+          { y: 60, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.7, stagger: 0.08, ease: "power3.out" }
+        );
+      }
+    }
+  }, [drawerOpen]);
+
+  // Add this in the ProductPage component after refs:
+  const popularSectionRef = useRef(null);
+  const popularRowRef = useRef(null);
+  const popularHeadingRef = useRef(null);
+  const popularImageRefs = useRef([]);
+  const popularNameRefs = useRef([]);
+  const popularProducts = [
+    { name: "BAMBOO CANOPY", img: popularImages[0] },
+    { name: "BAMBOO BED", img: popularImages[1] },
+    { name: "BAMBOO PLANTER", img: popularImages[2] },
+    { name: "BAMBOO BEDROOM", img: popularImages[3] },
+    { name: "BAMBOO LAMP", img: popularImages[0] },
+    { name: "BAMBOO TABLE", img: popularImages[1] },
+  ];
+
+  useLayoutEffect(() => {
+    if (!popularSectionRef.current || !popularRowRef.current) return;
+    import("gsap").then(({ default: gsap }) => {
+      import("gsap/ScrollTrigger").then(({ ScrollTrigger }) => {
+        gsap.registerPlugin(ScrollTrigger);
+        const section = popularSectionRef.current;
+        const row = popularRowRef.current;
+        const heading = popularHeadingRef.current;
+        const images = popularImageRefs.current;
+        const names = popularNameRefs.current;
+        const numProducts = 6;
+        const visible = 3;
+        const scrollWidth =
+          (row.scrollWidth / numProducts) * (numProducts - visible);
+        // Pin and horizontal scroll
+        ScrollTrigger.create({
+          trigger: section,
+          start: "top top",
+          end: `+=${scrollWidth}`,
+          pin: true,
+          scrub: 1,
+          anticipatePin: 1,
+          onUpdate: (self) => {
+            const progress = self.progress;
+            gsap.to(row, {
+              x: -progress * scrollWidth,
+              duration: 0.1,
+              overwrite: "auto",
+            });
+          },
+        });
+        // Animate heading (bottom to up)
+        gsap.fromTo(
+          heading,
+          { opacity: 0, y: 32 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.7,
+            ease: "power3.out",
+            scrollTrigger: {
+              trigger: heading,
+              start: "top 80%",
+            },
+          }
+        );
+        // Animate images (up to down) and names (bottom to up)
+        images.forEach((img, i) => {
+          gsap.fromTo(
+            img,
+            { opacity: 0, y: -32 },
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.7,
+              delay: i * 0.08,
+              ease: "power3.out",
+              scrollTrigger: {
+                trigger: section,
+                start: "top top",
+                end: `+=${scrollWidth}`,
+                scrub: 1,
+              },
+            }
+          );
+        });
+        names.forEach((name, i) => {
+          gsap.fromTo(
+            name,
+            { opacity: 0, y: 32 },
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.7,
+              delay: 0.2 + i * 0.08,
+              ease: "power3.out",
+              scrollTrigger: {
+                trigger: section,
+                start: "top top",
+                end: `+=${scrollWidth}`,
+                scrub: 1,
+              },
+            }
+          );
+        });
+      });
+    });
+  }, []);
+
+  // Add refs for FAQ questions
+  const faqSectionRef = useRef(null);
+  const faqQuestionRefs = useRef([]);
+  const [openFaq, setOpenFaq] = useState(-1);
+  const faqData = [
+    {
+      q: "Is a Rocking Chair Automatic Safe for Outdoor Use?",
+      a: "Yes, automatic rocking chairs are crafted with high-quality weather-resistant materials that make them perfect for outdoor use. These chairs are not just functional but also elevate the look of your outdoor setting—whether it's a bamboo canopy in your lawn, a stylish gazebo, or a relaxing setup near flower pots and hanging bamboo décor. They're a great match for bamboo furniture and provide comfort and motion for your garden seating area.",
+    },
+    {
+      q: "What Makes the Hanging Bubble Chair So Popular?",
+      a: "The hanging bubble chair stands out for its futuristic design and floating comfort. It adds a luxurious touch to both indoor and outdoor spaces. Especially when combined with bamboo swings, porch setups, or decorative items like bamboo wall hangings and artificial flower pots, it becomes a centerpiece. This chair blends perfectly with bamboo house styles and enhances the visual appeal of eco-friendly interiors.",
+    },
+    {
+      q: "Can I Buy a Porch Swing That Fits Small Lawns?",
+      a: "Yes, compact porch swings are now widely available and are perfect for small patios, balconies, and limited garden areas. You can create a complete bamboo-inspired corner by pairing these swings with baby furniture sets, bamboo chairs and tables, or even lightweight outdoor flower pots. This not only saves space but also turns any corner into a peaceful, natural retreat using Eco Bamboo Company's elegant products.",
+    },
+    {
+      q: "Is the Outdoor Hammock Chair Comfortable for Long Use?",
+      a: "Definitely! Outdoor hammock chairs are built with ergonomic support and breathable materials, offering long-lasting comfort. Ideal for lounging under bamboo canopies or pergolas, they can be beautifully matched with bamboo carports, swings, and relaxing setups in your garden. Whether placed in a lawn or on a porch, this chair enhances both the comfort and the organic feel of your bamboo-themed outdoor living.",
+    },
+  ];
+
+  // Animate FAQ questions on scroll (bottom to up, staggered, no opacity)
+  useLayoutEffect(() => {
+    if (!faqSectionRef.current || !faqQuestionRefs.current.length) return;
+    import("gsap").then(({ default: gsap }) => {
+      import("gsap/ScrollTrigger").then(({ ScrollTrigger }) => {
+        gsap.registerPlugin(ScrollTrigger);
+        gsap.fromTo(
+          faqQuestionRefs.current,
+          { y: 32 },
+          {
+            y: 0,
+            duration: 0.7,
+            ease: "power3.out",
+            stagger: 0.13,
+            scrollTrigger: {
+              trigger: faqSectionRef.current,
+              start: "top 75%",
+              toggleActions: "play none none none",
+            },
+          }
+        );
+      });
+    });
+  }, []);
+
+  // Animate all headings (h1, h2, h3, h4, .heading-animate) from bottom to up on enter
+  useLayoutEffect(() => {
+    import("gsap").then(({ default: gsap }) => {
+      import("gsap/ScrollTrigger").then(({ ScrollTrigger }) => {
+        gsap.registerPlugin(ScrollTrigger);
+        const headings = document.querySelectorAll(
+          "h1, h2, h3, h4, .heading-animate"
+        );
+        headings.forEach((heading) => {
+          gsap.fromTo(
+            heading,
+            { y: 32 },
+            {
+              y: 0,
+              duration: 0.7,
+              ease: "power3.out",
+              scrollTrigger: {
+                trigger: heading,
+                start: "top 75%",
+                toggleActions: "play none none none",
+              },
+            }
+          );
+        });
+      });
+    });
+  }, []);
+
+  // Add refs for horizontal FAQ block
+  const horizontalFaqRef = useRef(null);
+  const horizontalFaqCardRefs = useRef([]);
+
+  // Animate horizontal FAQ heading and cards from bottom to up on enter
+  useLayoutEffect(() => {
+    if (!horizontalFaqCardRefs.current.length || !horizontalFaqRef.current)
+      return;
+    import("gsap").then(({ default: gsap }) => {
+      import("gsap/ScrollTrigger").then(({ ScrollTrigger }) => {
+        gsap.registerPlugin(ScrollTrigger);
+        // Animate heading
+        const heading = horizontalFaqRef.current.querySelector(
+          ".horizontal-faq-heading"
+        );
+        if (heading) {
+          gsap.fromTo(
+            heading,
+            { y: 32 },
+            {
+              y: 0,
+              duration: 0.7,
+              ease: "power3.out",
+              scrollTrigger: {
+                trigger: heading,
+                start: "top 85%",
+                toggleActions: "play none none none",
+              },
+            }
+          );
+        }
+        // Animate cards
+        horizontalFaqCardRefs.current.forEach((card, i) => {
+          gsap.fromTo(
+            card,
+            { y: 32 },
+            {
+              y: 0,
+              duration: 0.7,
+              delay: i * 0.08,
+              ease: "power3.out",
+              scrollTrigger: {
+                trigger: card,
+                start: "top 90%",
+                toggleActions: "play none none none",
+              },
+            }
+          );
+        });
+      });
+    });
   }, []);
 
   return (
@@ -341,21 +1039,40 @@ export default function ProductPage() {
           <Image
             key={img}
             src={img}
-            alt={`Banner ${idx+1}`}
+            alt={`Banner ${idx + 1}`}
             fill
-            className={`object-cover transition-opacity duration-700 w-full h-full ${currentBanner === idx ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
-            style={{transition: 'opacity 0.7s'}}
+            className={`object-cover transition-opacity duration-700 w-full h-full ${
+              currentBanner === idx ? "opacity-100 z-10" : "opacity-0 z-0"
+            }`}
+            style={{ transition: "opacity 0.7s" }}
           />
         ))}
-        <button onClick={() => setCurrentBanner((currentBanner - 1 + bannerImages.length) % bannerImages.length)} className="absolute left-4 top-1/2 -translate-y-1/2 bg-white border border-[#B8860B] text-[#B8860B] rounded-full w-10 h-10 flex items-center justify-center shadow hover:bg-[#B8860B] hover:text-white transition-colors">
+        <button
+          onClick={() =>
+            setCurrentBanner(
+              (currentBanner - 1 + bannerImages.length) % bannerImages.length
+            )
+          }
+          className="absolute left-4 top-1/2 -translate-y-1/2 bg-white border border-[#B8860B] text-[#B8860B] rounded-full w-10 h-10 flex items-center justify-center shadow hover:bg-[#B8860B] hover:text-white transition-colors"
+        >
           <ChevronLeft className="w-6 h-6" />
         </button>
-        <button onClick={() => setCurrentBanner((currentBanner + 1) % bannerImages.length)} className="absolute right-4 top-1/2 -translate-y-1/2 bg-white border border-[#B8860B] text-[#B8860B] rounded-full w-10 h-10 flex items-center justify-center shadow hover:bg-[#B8860B] hover:text-white transition-colors">
+        <button
+          onClick={() =>
+            setCurrentBanner((currentBanner + 1) % bannerImages.length)
+          }
+          className="absolute right-4 top-1/2 -translate-y-1/2 bg-white border border-[#B8860B] text-[#B8860B] rounded-full w-10 h-10 flex items-center justify-center shadow hover:bg-[#B8860B] hover:text-white transition-colors"
+        >
           <ChevronRight className="w-6 h-6" />
         </button>
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
           {bannerImages.map((_, i) => (
-            <div key={i} className={`w-3 h-3 rounded-full border border-[#B8860B] ${currentBanner === i ? 'bg-[#B8860B]' : 'bg-white'}`}></div>
+            <div
+              key={i}
+              className={`w-3 h-3 rounded-full border border-[#B8860B] ${
+                currentBanner === i ? "bg-[#B8860B]" : "bg-white"
+              }`}
+            ></div>
           ))}
         </div>
       </div>
@@ -376,12 +1093,16 @@ export default function ProductPage() {
                 {productImages.slice(1, 5).map((img, i) => (
                   <div
                     key={i}
-                    className={`relative w-20 h-20 bg-gray-100 rounded-md overflow-hidden flex-shrink-0 cursor-pointer border-2 ${selectedImage === i+1 ? 'border-[#B8860B]' : 'border-transparent'}`}
-                    onClick={() => setSelectedImage(i+1)}
+                    className={`relative w-20 h-20 bg-gray-100 rounded-md overflow-hidden flex-shrink-0 cursor-pointer border-2 ${
+                      selectedImage === i + 1
+                        ? "border-[#B8860B]"
+                        : "border-transparent"
+                    }`}
+                    onClick={() => setSelectedImage(i + 1)}
                   >
                     <Image
                       src={img}
-                      alt={`Product view ${i+1}`}
+                      alt={`Product view ${i + 1}`}
                       fill
                       className="object-cover"
                     />
@@ -392,85 +1113,348 @@ export default function ProductPage() {
 
             {/* Product Details */}
             <div className="space-y-6" ref={detailsSectionRef}>
-              <div ref={el => { detailRefs.current[0] = el; }}>
+              <div
+                ref={(el) => {
+                  detailRefs.current[0] = el;
+                }}
+              >
                 <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
-                  {"Large Bamboo Hanging Wall - Unique & Stylish Wall Art for Any Room".split("").map((char, i) => (
-                    <span key={i} className="inline-block heading-char" style={{display: 'inline-block'}}>{char === ' ' ? '\u00A0' : char}</span>
-                  ))}
+                  {"Large Bamboo Hanging Wall – Unique & Affordable Wall Art for Home"
+                    .split("")
+                    .map((char, i) => (
+                      <span
+                        key={i}
+                        className="inline-block heading-char"
+                        style={{ display: "inline-block" }}
+                      >
+                        {char === " " ? "\u00A0" : char}
+                      </span>
+                    ))}
                 </h1>
               </div>
-              <div ref={el => { detailRefs.current[1] = el; }}>
-                <div className="flex items-center gap-2 mb-4">
+              <div
+                ref={(el) => {
+                  detailRefs.current[1] = el;
+                }}
+              >
+                <div className="flex items-center gap-2 mb-2">
                   <div className="flex items-center">
                     {[1, 2, 3, 4, 5].map((star) => (
-                      <Star key={star} className="w-4 h-4 fill-[#B8860B] text-[#B8860B]" />
+                      <Star
+                        key={star}
+                        className="w-5 h-5 fill-black text-black"
+                      />
                     ))}
                   </div>
-                  <span className="text-sm text-gray-600">(127 reviews)</span>
+                  <span className="text-base font-semibold">(66+ ratings)</span>
                 </div>
               </div>
-              <div ref={el => { detailRefs.current[2] = el; }}>
-                <div className="text-3xl font-bold text-gray-900"><AnimatedPrice price={price} /></div>
+              <div
+                ref={(el) => {
+                  detailRefs.current[2] = el;
+                }}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xl text-red-600 font-bold">⚡</span>
+                  <span className="font-bold text-lg">
+                    Selling fast! 10 people have this in their carts.
+                  </span>
+                </div>
               </div>
-              <div ref={el => { detailRefs.current[3] = el; }}>
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Size</label>
-                    <div className="flex gap-2">
-                      {["Small", "Medium", "Large"].map((size) => (
-                        <Button
-                          key={size}
-                          variant="outline"
-                          size="sm"
-                          className={
-                            selectedSize === size
-                              ? "bg-[#B8860B] text-white border-[#B8860B]"
-                              : "bg-white text-black border-black"
-                          }
-                          onClick={() => setSelectedSize(size)}
-                        >
-                          {size}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={() => setQuantity(q => Math.max(1, q-1))}>-</Button>
-                      <span className="px-4 py-2 border rounded">{quantity}</span>
-                      <Button variant="outline" size="sm" onClick={() => setQuantity(q => q+1)}>+</Button>
-                    </div>
+              <div
+                ref={(el) => {
+                  detailRefs.current[3] = el;
+                }}
+              >
+                <div className="flex items-center gap-4 mb-2">
+                  <span className="text-2xl font-bold">Rs.1,600.00 PKR</span>
+                  <span className="text-xl line-through text-gray-400">
+                    Rs.2,000.00 PKR
+                  </span>
+                  <span className="bg-blue-500 text-white text-sm font-bold px-3 py-1 rounded-full">
+                    20% OFF
+                  </span>
+                </div>
+              </div>
+              <div
+                ref={(el) => {
+                  detailRefs.current[4] = el;
+                }}
+              >
+                <div className="mb-2">
+                  <span className="font-semibold tracking-wide">Color:</span>{" "}
+                  <span className="font-medium">
+                    {selectedColor === 0 ? "Green" : "Bamboo Natural"}
+                  </span>
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={() => {
+                        setSelectedColor(0);
+                        setSelectedImage(0);
+                      }}
+                      className={`w-10 h-10 rounded-full border-2 flex items-center justify-center overflow-hidden ${
+                        selectedColor === 0
+                          ? "border-black ring-2 ring-black"
+                          : "border-gray-300"
+                      }`}
+                    >
+                      {" "}
+                      <Image
+                        src={productImages[0]}
+                        alt="Green"
+                        width={40}
+                        height={40}
+                        className="object-cover"
+                      />{" "}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedColor(1);
+                        setSelectedImage(1);
+                      }}
+                      className={`w-10 h-10 rounded-full border-2 flex items-center justify-center overflow-hidden ${
+                        selectedColor === 1
+                          ? "border-black ring-2 ring-black"
+                          : "border-gray-300"
+                      }`}
+                    >
+                      {" "}
+                      <Image
+                        src={productImages[1]}
+                        alt="Bamboo Natural"
+                        width={40}
+                        height={40}
+                        className="object-cover"
+                      />{" "}
+                    </button>
                   </div>
                 </div>
               </div>
-              <div ref={el => { detailRefs.current[4] = el; }}>
-                <div className="flex gap-3">
-                  <Button className="flex-1 bg-[#B8860B] hover:bg-black text-white">
-                    <ShoppingCart className="w-4 h-4 mr-2 text-[#B8860B]" />
-                    Add to Cart
+              <div
+                ref={(el) => {
+                  detailRefs.current[5] = el;
+                }}
+              >
+                <div className="mb-2">
+                  <span className="font-semibold">Quantity</span>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setQuantity((q) => {
+                          setQuantityAnim(true);
+                          return Math.max(1, q - 1);
+                        });
+                        setTimeout(() => setQuantityAnim(false), 200);
+                      }}
+                    >
+                      -
+                    </Button>
+                    <span
+                      className={`px-6 py-2 border rounded text-lg font-bold bg-gray-50 transition-transform duration-200 ${
+                        quantityAnim ? "scale-125" : ""
+                      }`}
+                    >
+                      {quantity}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setQuantity((q) => {
+                          setQuantityAnim(true);
+                          return q + 1;
+                        });
+                        setTimeout(() => setQuantityAnim(false), 200);
+                      }}
+                    >
+                      +
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <div
+                ref={(el) => {
+                  detailRefs.current[6] = el;
+                }}
+              >
+                <div className="flex flex-col sm:flex-row gap-2 mt-4">
+                  <Button className="flex-1 bg-black hover:bg-[#B8860B] text-[#FFD700] text-lg font-bold py-3 flex items-center justify-center">
+                    <ShoppingCart className="w-5 h-5 mr-2 text-[#FFD700]" /> Add
+                    to Cart
                   </Button>
-                  <Button variant="outline" size="icon">
-                    <Heart className="w-4 h-4 text-[#B8860B]" />
+                  <Button className="flex-1 bg-[#FFD700] hover:bg-black text-black text-lg font-bold py-3 flex items-center justify-center border border-black">
+                    <span className="mr-2">
+                      <svg
+                        width="20"
+                        height="20"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          d="M6 6h15l-1.5 9h-13z"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinejoin="round"
+                        />
+                        <circle cx="9" cy="21" r="1" fill="currentColor" />
+                        <circle cx="18" cy="21" r="1" fill="currentColor" />
+                      </svg>
+                    </span>{" "}
+                    Order Now
                   </Button>
                 </div>
               </div>
-              <div ref={el => { detailRefs.current[5] = el; }}>
-                <div className="space-y-2 text-sm text-gray-600">
+              <div
+                ref={(el) => {
+                  detailRefs.current[7] = el;
+                }}
+              >
+                <div className="flex items-center gap-2 mt-4">
+                  <span className="text-green-600 text-xl">✔</span>
+                  <span>
+                    Pickup available at{" "}
+                    <span className="font-bold">Eco Bamboo</span>. Usually ready
+                    in 24 hours
+                  </span>
+                </div>
+              </div>
+              <div
+                ref={(el) => {
+                  detailRefs.current[8] = el;
+                }}
+              >
+                <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
+                  <DrawerTrigger asChild>
+                    <a
+                      href="#"
+                      className="text-sm underline text-gray-600 cursor-pointer"
+                    >
+                      View store information
+                    </a>
+                  </DrawerTrigger>
+                  <DrawerContent className="left-0 top-0 bottom-0 fixed w-full max-w-md rounded-none shadow-lg p-8 flex flex-col justify-start items-start bg-white">
+                    <DrawerClose className="absolute top-4 right-4 z-10 bg-transparent border-none p-0 m-0">
+                      <X className="w-7 h-7" />
+                    </DrawerClose>
+                    <div id="store-info-animate" className="w-full">
+                      <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
+                        Large Bamboo Hanging Wall – Unique & Affordable Wall Art
+                        for Home
+                      </h2>
+                      <div className="mb-2 text-lg">Color: Bamboo Natural</div>
+                      <div className="mb-2 font-bold text-lg">Eco Bamboo</div>
+                      <div className="flex items-center gap-2 mb-2 text-green-700 font-semibold">
+                        <Check className="w-5 h-5" /> Pickup available, usually
+                        ready in 24 hours
+                      </div>
+                      <div className="mb-2 text-base">
+                        Eco Bambo
+                        <br />
+                        Karkhane wali abadi,Near pso pump petrol, Nazd Ali Niaz
+                        Sweet, Chakian,Phularwan
+                        <br />
+                        Bhalwal 40410
+                        <br />
+                        Pakistan
+                      </div>
+                      <div className="mb-2 text-base font-semibold">
+                        +923478237147
+                      </div>
+                    </div>
+                  </DrawerContent>
+                </Drawer>
+              </div>
+              <div
+                ref={(el) => {
+                  detailRefs.current[9] = el;
+                }}
+              >
+                <div className="flex items-center gap-6 mt-6">
                   <div className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-[#B8860B]" />
-                    <span>Free shipping on orders over $50</span>
+                    <Truck className="w-5 h-5" />
+                    <span>Delivery & Return</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-[#B8860B]" />
-                    <span>30-day return policy</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-[#B8860B]" />
-                    <span>Secure payment</span>
+                    <Share2 className="w-5 h-5" />
+                    <span>Share</span>
                   </div>
                 </div>
               </div>
+              <div
+                ref={(el) => {
+                  detailRefs.current[10] = el;
+                }}
+              >
+                <div className="flex items-center gap-2 mt-6">
+                  <ShieldCheck className="w-5 h-5" />
+                  <span className="font-semibold">Guarantee Safe Checkout</span>
+                  <span className="flex gap-2 ml-2">
+                    <span
+                      className="bg-white rounded shadow p-1 flex items-center justify-center"
+                      style={{ width: 40, height: 28 }}
+                    >
+                      <Image
+                        src="/visa.png"
+                        alt="Visa"
+                        width={32}
+                        height={20}
+                        style={{ objectFit: "contain" }}
+                      />
+                    </span>
+                    <span
+                      className="bg-white rounded shadow p-1 flex items-center justify-center"
+                      style={{ width: 40, height: 28 }}
+                    >
+                      <Image
+                        src="/paypal.png"
+                        alt="PayPal"
+                        width={32}
+                        height={20}
+                        style={{ objectFit: "contain" }}
+                      />
+                    </span>
+                    <span
+                      className="bg-white rounded shadow p-1 flex items-center justify-center"
+                      style={{ width: 40, height: 28 }}
+                    >
+                      <Image
+                        src="/mastercard.png"
+                        alt="Mastercard"
+                        width={32}
+                        height={20}
+                        style={{ objectFit: "contain" }}
+                      />
+                    </span>
+                    <span
+                      className="bg-white rounded shadow p-1 flex items-center justify-center"
+                      style={{ width: 40, height: 28 }}
+                    >
+                      <Image
+                        src="/amex.png"
+                        alt="Amex"
+                        width={32}
+                        height={20}
+                        style={{ objectFit: "contain" }}
+                      />
+                    </span>
+                    <span
+                      className="bg-white rounded shadow p-1 flex items-center justify-center"
+                      style={{ width: 40, height: 28 }}
+                    >
+                      <Image
+                        src="/discover.png"
+                        alt="Discover"
+                        width={32}
+                        height={20}
+                        style={{ objectFit: "contain" }}
+                      />
+                    </span>
+                  </span>
+                </div>
+              </div>
+              <ScrollingMarquee />
             </div>
           </div>
         </div>
@@ -480,7 +1464,17 @@ export default function ProductPage() {
           <div className="container mx-auto px-4">
             <div className="text-center mb-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                {"How to Assemble Your Wood Art on Accent Wall - Watch Video Now!".split("").map((char, i) => <span key={i} className="inline-block heading-char" style={{display: 'inline-block'}}>{char === ' ' ? '\u00A0' : char}</span>)}
+                {"How to Assemble Your Wood Art on Accent Wall - Watch Video Now!"
+                  .split("")
+                  .map((char, i) => (
+                    <span
+                      key={i}
+                      className="inline-block heading-char"
+                      style={{ display: "inline-block" }}
+                    >
+                      {char === " " ? "\u00A0" : char}
+                    </span>
+                  ))}
               </h2>
             </div>
             <div className="max-w-4xl mx-auto">
@@ -492,7 +1486,10 @@ export default function ProductPage() {
                   className="object-cover"
                 />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <Button size="lg" className="rounded-full w-16 h-16 bg-[#B8860B] hover:bg-black text-white">
+                  <Button
+                    size="lg"
+                    className="rounded-full w-16 h-16 bg-[#B8860B] hover:bg-black text-white"
+                  >
                     <Play className="w-6 h-6 ml-1 text-[#B8860B]" />
                   </Button>
                 </div>
@@ -505,143 +1502,326 @@ export default function ProductPage() {
         <div className="py-12">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">{"Easy DIY Setup: Home Wall Art Décor".split("").map((char, i) => <span key={i} className="inline-block heading-char" style={{display: 'inline-block'}}>{char === ' ' ? '\u00A0' : char}</span>)}</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                {"Easy DIY Setup: Home Wall Art Décor"
+                  .split("")
+                  .map((char, i) => (
+                    <span
+                      key={i}
+                      className="inline-block heading-char"
+                      style={{ display: "inline-block" }}
+                    >
+                      {char === " " ? "\u00A0" : char}
+                    </span>
+                  ))}
+              </h2>
             </div>
 
-            <div className="max-w-6xl mx-auto space-y-16">
-              {/* Step 1 */}
-              <div className="grid lg:grid-cols-2 gap-8 items-center">
-                <div className="space-y-4">
-                  <h3 className="text-xl font-bold text-gray-900 mb-4">
-                    <RotatingScrollText text="Step 1: Preparing the Materials – Bamboo and Wooden Elements" className="inline-block" />
-                  </h3>
-                  <p ref={step1ParaRef} className="text-gray-600 leading-relaxed">
-                    Elevate your walls with eco-friendly bamboo hanging art. Perfect for homes, kitchens, bedrooms, guest
-                    areas, and offices, its natural texture brings calm and rustic elegance to any setting. Ideal for
-                    kitchen wall decor, home goods wall decor, and exterior wall art, it blends beautifully with every
-                    theme. Handcrafted with care, it's a sustainable choice for modern interiors. Order today and
-                    transform your walls with nature's charm.
-                  </p>
-                </div>
-                <div ref={step1ImgRef} className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                  <ProductImageWithLens
-                    src={diyImages[0]}
-                    alt="Step 1: Preparing bamboo materials"
-                    className="w-full h-full"
-                  />
-                </div>
-              </div>
-
-              {/* Step 2 */}
-              <div className="grid lg:grid-cols-2 gap-8 items-center">
-                <div className="space-y-4">
-                  <h3 className="text-xl font-bold text-gray-900 mb-4">
-                    <RotatingScrollText text="Step 2: Assembling the Hanging Wall Decor" className="inline-block" />
-                  </h3>
-                  <p ref={step2ParaRef} className="text-gray-600 leading-relaxed">
-                    Begin the assembly process by carefully connecting each bamboo piece according to the provided
-                    instructions. Take your time to ensure each joint is secure and properly aligned. The natural
-                    flexibility of bamboo allows for easy handling while maintaining structural integrity. This step is
-                    crucial for creating a stable and beautiful wall art piece that will last for years to come.
-                  </p>
-                </div>
-                <div ref={step2ImgRef} className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                  <Image
-                    src={diyImages[1]}
-                    alt="Step 2: Assembling the hanging wall decor"
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-              </div>
-
-              {/* Step 3 */}
-              <div className="grid lg:grid-cols-2 gap-8 items-center">
-                <div className="space-y-4">
-                  <h3 className="text-xl font-bold text-gray-900 mb-4">
-                    <RotatingScrollText text="Step 3: Securing Your Wall Art" className="inline-block" />
-                  </h3>
-                  <p ref={step3ParaRef} className="text-gray-600 leading-relaxed">
-                    Once your bamboo art piece is fully assembled, it's time to mount it securely to your chosen wall. Use
-                    the provided mounting hardware and follow the installation guide carefully. Ensure the wall surface is
-                    clean and level before mounting. The lightweight nature of bamboo makes installation easy while
-                    providing a stunning focal point for any room in your home.
-                  </p>
-                </div>
-                <div ref={step3ImgRef} className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                  <Image
-                    src={diyImages[2]}
-                    alt="Step 3: Securing your wall art"
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-              </div>
-
-              {/* Step 4 */}
-              <div className="grid lg:grid-cols-2 gap-8 items-center">
-                <div className="space-y-4">
-                  <h3 className="text-xl font-bold text-gray-900 mb-4">
-                    <RotatingScrollText text="Step 4: Ready to Hang, Ready to Impress" className="inline-block" />
-                  </h3>
-                  <p ref={step4ParaRef} className="text-gray-600 leading-relaxed">
-                    Congratulations! Your beautiful bamboo wall art is now ready to transform your space. Step back and
-                    admire your handiwork – you've successfully created an eco-friendly, stylish accent that brings
-                    natural beauty indoors. The warm tones and organic textures of bamboo will complement any décor style
-                    while adding a touch of sustainable elegance to your home environment.
-                  </p>
-                </div>
-                <div ref={step4ImgRef} className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                  <Image
-                    src={diyImages[3]}
-                    alt="Step 4: Ready to hang, ready to impress"
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Casual Farmhouse Section */}
-        <div className="bg-gray-50 py-12">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-gray-900">{"Casual Farmhouse Decor House Plants for Sale!".split("").map((char, i) => <span key={i} className="inline-block heading-char" style={{display: 'inline-block'}}>{char === ' ' ? '\u00A0' : char}</span>)}</h2>
-            </div>
-            <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-              {[1, 2, 3].map((i) => (
-                <Card key={i} className="overflow-hidden">
-                  <div className="relative aspect-square">
-                    <Image
-                      src={farmhouseImages[i % farmhouseImages.length]}
-                      alt={`Plant decoration ${i+1}`}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <CardContent className="p-4">
-                    <h3 className="font-semibold text-gray-900 mb-2">Farmhouse Plant Decor</h3>
-                    <p className="text-gray-600 text-sm mb-3">Perfect for casual home styling</p>
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-gray-900"><AnimatedPrice price="$19.99" /></span>
-                      <Button size="sm">Add to Cart</Button>
+            <div className="relative max-w-6xl mx-auto py-16">
+              {/* Vertical timeline line */}
+              <div
+                className="hidden lg:block absolute top-0 left-1/2 -translate-x-1/2 h-full w-1 bg-gray-300 z-0"
+                style={{ minHeight: "100%" }}
+              />
+              {/* Golden overlay line */}
+              <div
+                id="golden-timeline"
+                className="hidden lg:block absolute top-0 left-1/2 -translate-x-1/2 w-1 bg-black z-10"
+                style={{ height: "0%" }}
+              />
+              <div className="space-y-40 relative z-20">
+                {/* Step 1 */}
+                <div className="grid lg:grid-cols-2 gap-x-20 gap-y-10 items-center relative justify-items-center">
+                  {/* Animated circle */}
+                  <div className="hidden lg:block absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30">
+                    <div
+                      id="step-circle-1"
+                      className="w-10 h-10 bg-black border-4 border-black rounded-full shadow flex items-center justify-center text-lg font-bold text-transparent transition-all relative overflow-hidden"
+                    >
+                      <span
+                        id="step-num-1"
+                        className="absolute inset-0 flex items-center justify-center opacity-0 text-transparent"
+                      >
+                        1
+                      </span>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                  </div>
+                  {/* Image left, text right */}
+                  <div
+                    ref={step1ImgRef}
+                    className="flex justify-center w-full max-w-lg pr-8"
+                  >
+                    <div
+                      id="step-img-1"
+                      className="relative w-full max-w-[540px] aspect-square bg-gray-100 rounded-lg overflow-hidden sm:max-w-xs md:max-w-md lg:max-w-[540px]"
+                    >
+                      <ProductImageWithLens
+                        src={diyImages[0]}
+                        alt="Step 1: Preparing bamboo materials"
+                        className="w-full h-full"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-4 w-full max-w-[540px] mx-auto text-center lg:text-left lg:mx-0 pl-8">
+                    <h3
+                      ref={step1HeadingRef}
+                      className="text-2xl font-bold text-gray-900 mb-4"
+                    >
+                      <span ref={step1ScrollTextRef}>
+                        <RotatingScrollText
+                          text="Step 1: Preparing the Materials – Bamboo and Wooden Elements"
+                          className="inline-block"
+                        />
+                      </span>
+                    </h3>
+                    <p
+                      ref={step1ParaRef}
+                      className="text-gray-600 leading-relaxed text-lg"
+                    >
+                      Elevate your walls with eco-friendly bamboo hanging art.
+                      Perfect for homes, kitchens, bedrooms, guest areas, and
+                      offices, its natural texture brings calm and rustic
+                      elegance to any setting. Ideal for kitchen wall decor,
+                      home goods wall decor, and exterior wall art, it blends
+                      beautifully with every theme. Handcrafted with care, it's
+                      a sustainable choice for modern interiors. Order today and
+                      transform your walls with nature's charm.
+                    </p>
+                  </div>
+                </div>
+                {/* Step 2 */}
+                <div className="grid lg:grid-cols-2 gap-x-20 gap-y-10 items-center relative justify-items-center">
+                  {/* Animated circle */}
+                  <div className="hidden lg:block absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30">
+                    <div
+                      id="step-circle-2"
+                      className="w-10 h-10 bg-black border-4 border-black rounded-full shadow flex items-center justify-center text-lg font-bold text-transparent transition-all relative overflow-hidden"
+                    >
+                      <span
+                        id="step-num-2"
+                        className="absolute inset-0 flex items-center justify-center opacity-0 text-transparent"
+                      >
+                        2
+                      </span>
+                    </div>
+                  </div>
+                  {/* Text left, image right */}
+                  <div className="space-y-4 order-2 lg:order-1 w-full max-w-lg">
+                    <h3
+                      ref={step2HeadingRef}
+                      className="text-2xl font-bold text-gray-900 mb-4"
+                    >
+                      <span ref={step2ScrollTextRef}>
+                        <RotatingScrollText
+                          text="Step 2: Assembling the Hanging Wall Decor"
+                          className="inline-block"
+                        />
+                      </span>
+                    </h3>
+                    <p
+                      ref={step2ParaRef}
+                      className="text-gray-600 leading-relaxed text-lg"
+                    >
+                      Begin the assembly process by carefully connecting each
+                      bamboo piece according to the provided instructions. Take
+                      your time to ensure each joint is secure and properly
+                      aligned. The natural flexibility of bamboo allows for easy
+                      handling while maintaining structural integrity. This step
+                      is crucial for creating a stable and beautiful wall art
+                      piece that will last for years to come.
+                    </p>
+                  </div>
+                  <div
+                    ref={step2ImgRef}
+                    className="flex justify-center order-1 lg:order-2 w-full max-w-lg"
+                  >
+                    <div
+                      id="step-img-2"
+                      className="relative w-full max-w-[540px] aspect-square bg-gray-100 rounded-lg overflow-hidden sm:max-w-xs md:max-w-md lg:max-w-[540px]"
+                    >
+                      <Image
+                        src={diyImages[1]}
+                        alt="Step 2: Assembling the hanging wall decor"
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                  </div>
+                </div>
+                {/* Step 3 */}
+                <div className="grid lg:grid-cols-2 gap-x-20 gap-y-10 items-center relative justify-items-center">
+                  {/* Animated circle */}
+                  <div className="hidden lg:block absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30">
+                    <div
+                      id="step-circle-3"
+                      className="w-10 h-10 bg-black border-4 border-black rounded-full shadow flex items-center justify-center text-lg font-bold text-transparent transition-all relative overflow-hidden"
+                    >
+                      <span
+                        id="step-num-3"
+                        className="absolute inset-0 flex items-center justify-center opacity-0 text-transparent"
+                      >
+                        3
+                      </span>
+                    </div>
+                  </div>
+                  {/* Image left, text right */}
+                  <div
+                    ref={step3ImgRef}
+                    className="flex justify-center w-full max-w-lg"
+                  >
+                    <div
+                      id="step-img-3"
+                      className="relative w-full max-w-[540px] aspect-square bg-gray-100 rounded-lg overflow-hidden sm:max-w-xs md:max-w-md lg:max-w-[540px]"
+                    >
+                      <Image
+                        src={diyImages[2]}
+                        alt="Step 3: Securing your wall art"
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-4 w-full max-w-[540px] mx-auto text-center lg:text-left lg:mx-0">
+                    <h3
+                      ref={step3HeadingRef}
+                      className="text-2xl font-bold text-gray-900 mb-4"
+                    >
+                      <span ref={step3ScrollTextRef}>
+                        <RotatingScrollText
+                          text="Step 3: Securing Your Wall Art"
+                          className="inline-block"
+                        />
+                      </span>
+                    </h3>
+                    <p
+                      ref={step3ParaRef}
+                      className="text-gray-600 leading-relaxed text-lg"
+                    >
+                      Once your bamboo art piece is fully assembled, it's time
+                      to mount it securely to your chosen wall. Use the provided
+                      mounting hardware and follow the installation guide
+                      carefully. Ensure the wall surface is clean and level
+                      before mounting. The lightweight nature of bamboo makes
+                      installation easy while providing a stunning focal point
+                      for any room in your home.
+                    </p>
+                  </div>
+                </div>
+                {/* Step 4 */}
+                <div className="grid lg:grid-cols-2 gap-x-20 gap-y-10 items-center relative justify-items-center">
+                  {/* Animated circle */}
+                  <div className="hidden lg:block absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30">
+                    <div
+                      id="step-circle-4"
+                      className="w-10 h-10 bg-black border-4 border-black rounded-full shadow flex items-center justify-center text-lg font-bold text-transparent transition-all relative overflow-hidden"
+                    >
+                      <span
+                        id="step-num-4"
+                        className="absolute inset-0 flex items-center justify-center opacity-0 text-transparent"
+                      >
+                        4
+                      </span>
+                    </div>
+                  </div>
+                  {/* Text left, image right */}
+                  <div className="space-y-4 order-2 lg:order-1 w-full max-w-lg">
+                    <h3
+                      ref={step4HeadingRef}
+                      className="text-2xl font-bold text-gray-900 mb-4"
+                    >
+                      <span ref={step4ScrollTextRef}>
+                        <RotatingScrollText
+                          text="Step 4: Ready to Hang, Ready to Impress"
+                          className="inline-block"
+                        />
+                      </span>
+                    </h3>
+                    <p
+                      ref={step4ParaRef}
+                      className="text-gray-600 leading-relaxed text-lg"
+                    >
+                      Congratulations! Your beautiful bamboo wall art is now
+                      ready to transform your space. Step back and admire your
+                      handiwork – you've successfully created an eco-friendly,
+                      stylish accent that brings natural beauty indoors. The
+                      warm tones and organic textures of bamboo will complement
+                      any décor style while adding a touch of sustainable
+                      elegance to your home environment.
+                    </p>
+                  </div>
+                  <div
+                    ref={step4ImgRef}
+                    className="flex justify-center order-1 lg:order-2 w-full max-w-lg"
+                  >
+                    <div
+                      id="step-img-4"
+                      className="relative w-full max-w-[540px] aspect-square bg-gray-100 rounded-lg overflow-hidden sm:max-w-xs md:max-w-md lg:max-w-[540px]"
+                    >
+                      <Image
+                        src={diyImages[3]}
+                        alt="Step 4: Ready to hang, ready to impress"
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Bathroom Art Decor Section */}
+        <section className="w-full bg-gray-50 py-16">
+          <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            {/* Left: Text */}
+            <div className="space-y-6 md:pr-8">
+              <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-2 text-left">
+                Bathroom Art Decor
+              </h2>
+              <h3 className="text-2xl md:text-3xl font-medium text-gray-800 mb-4 text-left">
+                Compact Vertical Display Crafted for Tight Urban Spaces
+              </h3>
+              <p className="text-lg md:text-xl text-gray-700 font-normal mb-4 text-left">
+                A compact bamboo hanging wall that blends natural warmth with
+                modern simplicity.
+              </p>
+              <p className="text-base text-gray-600 font-normal mb-8 text-left">
+                "Compact Bamboo Wall Display"*
+              </p>
+              <button className="px-8 py-3 bg-black text-[#FFD700] rounded shadow font-semibold text-lg flex items-center gap-2 w-fit hover:bg-[#B8860B] hover:text-white transition">
+                Shop Now
+                <span>
+                  <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
+                    <path
+                      d="M5 12h14m0 0l-6-6m6 6l-6 6"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
+              </button>
+            </div>
+            {/* Right: Image */}
+            <div className="flex justify-center items-center">
+              <div className="relative w-full max-w-xl aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                <Image
+                  src={bathroomImages[0]}
+                  alt="Bathroom Art Decor"
+                  fill
+                  className="object-cover"
+                />
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* Product Showcase Section */}
         <div className="py-12">
           <div className="container mx-auto px-4">
             <div className="relative">
-              <div className="absolute top-0 left-0">
-                <Button className="bg-black text-white">Shop Now →</Button>
-              </div>
               <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto mt-16">
                 {/* Small Pot */}
                 <div ref={showcaseRefs[0]} className="flex gap-6 items-center">
@@ -654,11 +1834,16 @@ export default function ProductPage() {
                     />
                   </div>
                   <div className="space-y-3">
-                    <h3 className="text-xl font-bold text-gray-900">Small Pot</h3>
-                    <p className="text-gray-600">A handcrafted small bamboo pot that ads charm to any plant display.</p>
-                    <Button variant="outline" className="text-sm bg-transparent">
-                      Purchase Now ⊕
-                    </Button>
+                    <h3 className="text-xl font-bold text-gray-900">
+                      Small Pot
+                    </h3>
+                    <p className="text-gray-600">
+                      A handcrafted small bamboo pot that ads charm to any plant
+                      display.
+                    </p>
+                    <button className="hover:text-blue-900 hover:underline hover:font-bold transition-all duration-300 z-1000">
+                      Purchase Now
+                    </button>
                   </div>
                 </div>
                 {/* Big Pot */}
@@ -673,140 +1858,136 @@ export default function ProductPage() {
                   </div>
                   <div className="space-y-3">
                     <h3 className="text-xl font-bold text-gray-900">Big Pot</h3>
-                    <p className="text-gray-600">Bamboo flower pot designed to elevate larger plant displays.</p>
-                    <Button variant="outline" className="text-sm bg-transparent">
-                      Purchase Now ⊕
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Bathroom Art Decor Section */}
-        <div className="py-12">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-gray-900">{"Bathroom Art Decor".split("").map((char, i) => <span key={i} className="inline-block heading-char" style={{display: 'inline-block'}}>{char === ' ' ? '\u00A0' : char}</span>)}</h2>
-              <p className="text-gray-600 mt-2">
-                Transform Your Bathroom into a Stylish Oasis with Our Curated Art Collection Designed for Tight Urban
-                Spaces
-              </p>
-            </div>
-            <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-8">
-              {[0,1,2].map(i => (
-                <div ref={bathroomCardRefs[i]} key={i}>
-                  <Card className="overflow-hidden">
-                    <div className="relative aspect-square">
-                      <Image src={bathroomImages[i % bathroomImages.length]} alt={['Wall Art','Big Fish','Big Fish'][i]} fill className="object-cover" />
-                    </div>
-                    <CardContent className="p-4 text-center">
-                      <h3 className="font-semibold text-gray-900 mb-1">{['Wall Art','Big Fish','Big Fish'][i]}</h3>
-                      <p className="font-bold text-gray-900"><AnimatedPrice price={["$24.99","$34.99","$29.99"][i]} /></p>
-                    </CardContent>
-                  </Card>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Enhanced Customer Reviews Section */}
-        <div className="bg-gray-50 py-12">
-          <div className="container mx-auto px-4">
-            <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto mb-12">
-              {[0,1,2].map(i => (
-                <div ref={reviewRefs[i]} key={i} className="text-center space-y-3">
-                  <div className="flex justify-center">
-                    {[...Array(5)].map((_, j) => (
-                      <Star key={j} className="w-5 h-5 fill-[#B8860B] text-[#B8860B]" />
-                    ))}
-                  </div>
-                  <div className="relative w-16 h-16 mx-auto rounded-full overflow-hidden">
-                    <Image src={reviewAvatars[i % reviewAvatars.length]} alt={["Safder Ali","Kingsley Chandler","— Adnan A."][i]} fill className="object-cover" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900 text-lg">{["Safder Ali","Kingsley Chandler","— Adnan A."][i]}</h4>
-                    <p className="text-gray-600 text-sm">{["Mechanical Engineering","Environmental Economist","Graphic Designer"][i]}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Navigation arrows */}
-            <div className="flex justify-center gap-2 mb-8">
-              <Button variant="outline" size="icon" className="rounded-full bg-[#B8860B] text-white border-[#B8860B]">
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <Button variant="outline" size="icon" className="rounded-full bg-[#B8860B] text-white border-[#B8860B]">
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
-
-            {/* FAQ Section */}
-            <div className="max-w-4xl mx-auto">
-              <h2 className="text-2xl font-bold text-gray-900 mb-8">{"Explore, Understand, Shop Confidently".split("").map((char, i) => <span key={i} className="inline-block heading-char" style={{display: 'inline-block'}}>{char === ' ' ? '\u00A0' : char}</span>)}</h2>
-
-              <div className="space-y-4">
-                {[
-                  "Is a Rocking Chair Automatic Safe for Outdoor Use?",
-                  "What Makes the Hanging Bubble Chair So Popular?",
-                  "Can I Buy a Porch Swing That Fits Small Lawns?",
-                  "Is the Outdoor Hammock Chair Comfortable for Long Use?",
-                ].map((question, i) => (
-                  <div key={i} className="border-b border-gray-200 pb-4">
-                    <button className="flex items-center justify-between w-full text-left">
-                      <span className="font-medium text-gray-900">{question}</span>
-                      <Plus className="w-5 h-5 text-gray-400" />
+                    <p className="text-gray-600">
+                      Bamboo flower pot designed to elevate larger plant
+                      displays.
+                    </p>
+                    <button className="hover:text-blue-900 hover:underline hover:font-bold transition-all duration-300 z-1000">
+                      Purchase Now
                     </button>
                   </div>
-                ))}
+                </div>
               </div>
             </div>
           </div>
         </div>
 
+        {/* Insert this JSX after the Small Pot/Big Pot section and before reviews: */}
+        <section className="w-full py-16 bg-white">
+          <div className="max-w-7xl mx-auto px-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-12 text-center heading-animate">
+              Customers Love Our Hanging Tapestry – Read Their Reviews!
+            </h2>
+            <ReviewsCarousel />
+          </div>
+        </section>
+
         {/* Popular Products Section */}
-        <div className="py-12">
+        <section
+          ref={popularSectionRef}
+          className="py-12 bg-gray-70 relative overflow-x-hidden"
+        >
           <div className="container mx-auto px-4">
             <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">{"Explore Full Collection!".split("").map((char, i) => <span key={i} className="inline-block heading-char" style={{display: 'inline-block'}}>{char === ' ' ? '\u00A0' : char}</span>)}</h2>
-              <h3 className="text-xl font-semibold text-gray-800">All Time Popular Products</h3>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                {"Explore Full Collection!".split("").map((char, i) => (
+                  <span
+                    key={i}
+                    className="inline-block heading-char"
+                    style={{ display: "inline-block" }}
+                  >
+                    {char === " " ? "\u00A0" : char}
+                  </span>
+                ))}
+              </h2>
+              <h3
+                ref={popularHeadingRef}
+                className="text-xl font-semibold text-4xl py-4 text-gray-800 opacity-0 translate-y-8"
+              >
+                ALL TIME POPULAR PRODUCTS
+              </h3>
             </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-6xl mx-auto">
-              {Array.from({length: 8}).map((_,i) => (
-                <div ref={popularCardRefs[i]} key={i}>
-                  <Card className="overflow-hidden">
-                    <div className="relative aspect-square">
+            <div className="relative">
+              <div
+                ref={popularRowRef}
+                className="flex gap-8 overflow-x-auto scrollbar-none snap-x snap-mandatory pb-4 md:justify-center"
+                style={{ scrollbarWidth: "none" }}
+              >
+                {popularProducts.map((item, i) => (
+                  <div
+                    key={i}
+                    className="bg-white flex flex-col items-center min-w-[320px] max-w-xs rounded-2xl shadow-lg p-6 flex-shrink-0 snap-center border border-gray-100"
+                  >
+                    <div
+                      ref={(el) => (popularImageRefs.current[i] = el)}
+                      className="relative w-full aspect-square bg-gray-100 rounded-lg overflow-hidden mb-4"
+                    >
                       <Image
-                        src={popularImages[i % popularImages.length]}
-                        alt={`Popular product ${i+1}`}
+                        src={item.img}
+                        alt={item.name}
                         fill
                         className="object-cover"
                       />
                     </div>
-                    <CardContent className="p-3">
-                      <h4 className="font-medium text-gray-900 text-sm mb-1">Wall Art Decor</h4>
-                      <p className="font-bold text-gray-900 text-sm"><AnimatedPrice price="$24.99" className="text-sm" /></p>
-                    </CardContent>
-                  </Card>
-                </div>
-              ))}
+                    <div className="py-2 w-full text-center">
+                      <h4
+                        ref={(el) => (popularNameRefs.current[i] = el)}
+                        className="font-bold text-gray-900 text-lg tracking-widest opacity-0 translate-y-8"
+                        style={{ letterSpacing: "0.08em" }}
+                      >
+                        {item.name}
+                      </h4>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <style jsx global>{`
+                .scrollbar-none::-webkit-scrollbar {
+                  display: none;
+                }
+                .scrollbar-none {
+                  -ms-overflow-style: none;
+                  scrollbar-width: none;
+                }
+              `}</style>
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Features Section */}
-        <div className="bg-gray-100 py-8">
+        <div className="py-8">
           <div className="container mx-auto px-4">
             <div className="grid md:grid-cols-4 gap-6 text-center">
-              {[0,1,2,3].map(i => (
+              {[0, 1, 2, 3].map((i) => (
                 <div ref={featureRefs[i]} key={i} className="space-y-2">
-                  {[<Truck className="w-12 h-12 mx-auto mb-3 text-[#B8860B]" />,<Undo2 className="w-12 h-12 mx-auto mb-3 text-[#B8860B]" />,<ShieldCheck className="w-12 h-12 mx-auto mb-3 text-[#B8860B]" />,<Headphones className="w-12 h-12 mx-auto mb-3 text-[#B8860B]" />][i]}
-                  <h4 className="font-semibold text-gray-900">{["Free Shipping","Easy Returns","Secure Payment","24/7 Support"][i]}</h4>
-                  <p className="text-gray-600 text-sm">{["On orders over $50","30-day return policy","100% secure checkout","Customer service"][i]}</p>
+                  {
+                    [
+                      <Truck className="w-12 h-12 mx-auto mb-3 text-[#B8860B]" />,
+                      <Undo2 className="w-12 h-12 mx-auto mb-3 text-[#B8860B]" />,
+                      <ShieldCheck className="w-12 h-12 mx-auto mb-3 text-[#B8860B]" />,
+                      <Headphones className="w-12 h-12 mx-auto mb-3 text-[#B8860B]" />,
+                    ][i]
+                  }
+                  <h4 className="font-semibold text-gray-900">
+                    {
+                      [
+                        "Free Shipping",
+                        "Easy Returns",
+                        "Secure Payment",
+                        "24/7 Support",
+                      ][i]
+                    }
+                  </h4>
+                  <p className="text-gray-600 text-sm">
+                    {
+                      [
+                        "On orders over Rs.8,000 PKR",
+                        "30-day return policy",
+                        "100% secure checkout",
+                        "Customer service",
+                      ][i]
+                    }
+                  </p>
                 </div>
               ))}
             </div>
@@ -814,5 +1995,5 @@ export default function ProductPage() {
         </div>
       </div>
     </>
-  )
+  );
 }
