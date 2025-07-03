@@ -731,12 +731,6 @@ export default function ProductPage() {
   const featureRefs = Array.from({ length: 4 }, () =>
     useRef<HTMLDivElement>(null)
   );
-  // const featureRefs = [
-  //   useRef<HTMLDivElement>(null),
-  //   useRef<HTMLDivElement>(null),
-  //   useRef<HTMLDivElement>(null),
-  //   useRef<HTMLDivElement>(null),
-  // ];
 
   useEffect(() => {
     // Product Showcase
@@ -1214,6 +1208,32 @@ export default function ProductPage() {
       document.body.style.overflow = '';
     };
   }, [showPosterModal]);
+
+  // Animate features (bottom to up, staggered)
+  useLayoutEffect(() => {
+    if (!featureRefs.length) return;
+    import('gsap').then(({ default: gsap }) => {
+      import('gsap/ScrollTrigger').then(({ ScrollTrigger }) => {
+        gsap.registerPlugin(ScrollTrigger);
+        gsap.fromTo(
+          featureRefs.map(ref => ref.current),
+          { y: 40, opacity: 0 },
+          {
+            y: 0,
+            opacity: 1,
+            duration: 0.7,
+            ease: 'power3.out',
+            stagger: 0.15,
+            scrollTrigger: {
+              trigger: featureRefs[0].current,
+              start: 'top 90%',
+              toggleActions: 'play none none none',
+            },
+          }
+        );
+      });
+    });
+  }, []);
 
   return (
     <>
@@ -2171,8 +2191,8 @@ export default function ProductPage() {
               {[0, 1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  ref={(el) => { featureRefs[i].current = el; }}
-                  className="flex flex-col items-center justify-center space-y-2"
+                  ref={featureRefs[i]}
+                  className="flex flex-col items-center justify-center space-y-2 opacity-0"
                 >
                   <div className="text-[#B8860B]">
                     {
