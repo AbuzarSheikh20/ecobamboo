@@ -976,7 +976,21 @@ export default function ProductPage() {
     { name: "BAMBOO TABLE", img: popularImages[1] },
   ];
 
+  // State for mobile tap to show Add to Cart
+  const [activeProduct, setActiveProduct] = useState<number | null>(null);
+  const isTouchDevice = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+
+  const [isLargeScreen, setIsLargeScreen] = useState(false);
+
+  useEffect(() => {
+    const checkScreen = () => setIsLargeScreen(window.innerWidth >= 1024); // 1024px is Tailwind's 'lg'
+    checkScreen();
+    window.addEventListener('resize', checkScreen);
+    return () => window.removeEventListener('resize', checkScreen);
+  }, []);
+
   useLayoutEffect(() => {
+    if (!isLargeScreen) return; // Only run GSAP for large screens
     if (!popularSectionRef.current || !popularRowRef.current) return;
     import("gsap").then(({ default: gsap }) => {
       import("gsap/ScrollTrigger").then(({ ScrollTrigger }) => {
@@ -986,7 +1000,7 @@ export default function ProductPage() {
         const heading = popularHeadingRef.current;
         const images = popularImageRefs.current;
         const names = popularNameRefs.current;
-        if (!section || !row) return; // <-- Add this line
+        if (!section || !row) return;
         const scrollWidth = row.scrollWidth - section.offsetWidth;
         // Pin and horizontal scroll
         ScrollTrigger.create({
@@ -994,18 +1008,17 @@ export default function ProductPage() {
           start: "top top",
           end: () => "+=" + row.scrollWidth,
           pin: true,
-          scrub: 1.5, // smoother, slower scroll
+          scrub: 1.5,
           anticipatePin: 1,
           onUpdate: (self) => {
             const progress = self.progress;
             gsap.to(row, {
               x: -progress * scrollWidth,
-              duration: 0.3, // increased duration for smoother scroll
+              duration: 0.3,
               overwrite: "auto",
             });
           },
         });
-
         // Animate heading (bottom to up)
         gsap.fromTo(
           heading,
@@ -1045,7 +1058,6 @@ export default function ProductPage() {
             { x: -80 },
             {
               x: 0,
-
               duration: 0.7,
               ease: "power3.out",
               scrollTrigger: {
@@ -1059,7 +1071,7 @@ export default function ProductPage() {
         });
       });
     });
-  }, []);
+  }, [isLargeScreen]);
 
   // Add refs for FAQ questions
   const faqSectionRef = useRef(null);
@@ -2092,7 +2104,7 @@ export default function ProductPage() {
         {/* Popular Products Section */}
         <section
           ref={popularSectionRef}
-          className="w-full overflow-hidden py-12 sm:py-20 bg-white min-h-[400px] sm:min-h-[600px]"
+          className={`w-full bg-white py-12 sm:py-20 overflow-x-hidden ${isLargeScreen ? 'min-h-[400px] sm:min-h-[600px]' : ''}`}
         >
           <h2
             ref={popularHeadingRef}
@@ -2101,29 +2113,50 @@ export default function ProductPage() {
             ALL TIME <span className="text-[#B8860B]">POPULAR</span> PRODUCTS
           </h2>
           <div className="relative">
-            <div ref={popularRowRef} className="flex gap-4 sm:gap-8 w-max px-4 sm:px-10">
+            <div
+              ref={popularRowRef}
+              className={`flex gap-4 sm:gap-8 ${isLargeScreen ? 'w-max' : 'w-full overflow-x-auto flex-nowrap scrollbar-none'} px-4 sm:px-10`}
+              style={isLargeScreen ? {} : { WebkitOverflowScrolling: 'touch' }}
+            >
               {popularProducts.map((item, i) => (
                 <div
                   key={i}
-                  className="w-[200px] sm:w-[300px] flex-shrink-0 text-center"
+                  className="w-[200px] sm:w-[300px] flex-shrink-0 text-center group relative"
                   ref={(el) => {
                     popularImageRefs.current[i] = el;
                   }}
+                  onTouchStart={() => {
+                    if (!isTouchDevice) setActiveProduct(i);
+                  }}
+                  onMouseLeave={() => {
+                    if (!isTouchDevice) setActiveProduct(null);
+                  }}
                 >
-                  <Image
-                    src={item.img}
-                    alt={item.name}
-                    width={300}
-                    height={300}
-                    className="rounded-lg mx-auto w-full h-auto"
-                  />
+                  <div className="relative">
+                    <Image
+                      src={item.img}
+                      alt={item.name}
+                      width={300}
+                      height={300}
+                      className="rounded-lg mx-auto w-full h-auto"
+                    />
+                    {/* Add to Cart Button Overlay */}
+                    <button
+                      className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 z-10
+                        ${isTouchDevice ? 'opacity-0 group-hover:opacity-100' : (activeProduct === i ? 'opacity-100' : 'opacity-0')}
+                        bg-black/50`}
+                      style={{ pointerEvents: (isTouchDevice || activeProduct === i) ? 'auto' : 'none' }}
+                    >
+                      <span className="bg-[#FFD700] text-black font-bold px-4 py-2 rounded shadow-lg text-base sm:text-lg">Add to Cart</span>
+                    </button>
+                  </div>
                   <h3
                     ref={(el) => {
                       popularNameRefs.current[i] = el;
                     }}
                     className="mt-3 sm:mt-4 text-base sm:text-lg font-semibold text-gray-800"
                   >
-                    {item.name}
+                    {item.name.replace(/&/g, 'and')}
                   </h3>
                 </div>
               ))}
