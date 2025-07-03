@@ -213,9 +213,20 @@ function AnimatedReviewerName({
 
 function ReviewsCarousel() {
   const [start, setStart] = useState(0);
-  const visible = 3;
+  // Show 1 on mobile, 3 on desktop
+  const visible = typeof window !== 'undefined' && window.innerWidth < 640 ? 1 : 3;
   const canPrev = start > 0;
   const canNext = start + visible < reviews.length;
+
+  // Responsive: update visible on resize
+  useEffect(() => {
+    const handleResize = () => {
+      // force re-render
+      setStart((s) => s);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handlePrev = () => {
     if (canPrev) setStart(start - 1);
@@ -227,19 +238,19 @@ function ReviewsCarousel() {
   return (
     <div className="relative">
       <div
-        className="flex gap-4 overflow-x-auto scrollbar-none pb-4 md:justify-center"
+        className="flex gap-4 overflow-x-auto scrollbar-none pb-4 md:justify-center flex-nowrap"
         style={{ scrollbarWidth: "none" }}
       >
-        {reviews.slice(start, start + visible).map((review, i) => (
+        {reviews.slice(start, start + (window.innerWidth < 640 ? reviews.length : visible)).map((review, i) => (
           <div
             key={i}
-            className="min-w-[280px] sm:min-w-[320px] md:min-w-[350px] max-w-sm bg-white p-3 sm:p-4 flex-shrink-0 flex flex-col justify-between items-center text-center mx-auto"
+            className={`$${window.innerWidth < 640 ? 'min-w-full max-w-full' : 'min-w-[350px] max-w-sm'} bg-white p-4 flex-shrink-0 flex flex-col justify-between items-center text-center mx-auto`}
+            style={window.innerWidth < 640 ? { scrollSnapAlign: 'start' } : {}}
           >
             <div className="mb-4">
               <span className="text-3xl text-gray-400 mb-2 block">
                 &#8220;&#8221;
               </span>
-              {/* Add a key that changes when the review is re-shown */}
               <AnimatedReview key={`${start}-${i}`} text={review.text} />
             </div>
             <div className="flex justify-center mb-4">
@@ -269,7 +280,8 @@ function ReviewsCarousel() {
           </div>
         ))}
       </div>
-      <div className="flex justify-center gap-2 mt-6">
+      {/* Hide arrows on mobile, show on sm+ */}
+      <div className="hidden sm:flex justify-center gap-2 mt-6">
         <Button
           variant="outline"
           size="icon"
@@ -1235,10 +1247,10 @@ export default function ProductPage() {
       <div className="min-h-screen bg-white">
         {/* Hero Product Section */}
         <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8">
-          <div className="grid lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start">
             {/* Product Image */}
             <div className="space-y-3 sm:space-y-4">
-              <div className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden">
+              <div className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden w-full max-w-xs sm:max-w-full mx-auto">
                 <ProductImageWithLens
                   src={productImages[selectedImage]}
                   alt="Large Bamboo Hanging Wall - Unique & Stylish Wall Art for Any Room"
