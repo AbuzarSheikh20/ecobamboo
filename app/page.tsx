@@ -33,7 +33,9 @@ import {
   DrawerTrigger,
   DrawerContent,
   DrawerClose,
+  DrawerTitle,
 } from "../components/ui/drawer";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 // 1. ReviewsCarousel component (place before export default):
 const reviews = [
@@ -81,6 +83,134 @@ const reviews = [
   },
 ];
 
+// AnimatedReview component for animated text
+function AnimatedReview({ text }: { text: string }) {
+  const reviewRef = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    if (!reviewRef.current) return;
+    const split = new SplitType(reviewRef.current, { types: "chars" });
+    const chars = (
+      reviewRef.current as HTMLElement
+    ).querySelectorAll<HTMLElement>(".char");
+
+    // Set initial state
+    gsap.set(chars, { opacity: 0 });
+
+    // Intersection Observer
+    const observer = new window.IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            // Animate in: fly from different directions
+            chars.forEach((char: HTMLElement, i: number) => {
+              const from = [
+                { x: -100, y: 0 },
+                { x: 100, y: 0 },
+                { x: 0, y: -100 },
+                { x: 0, y: 100 },
+              ][i % 4];
+              gsap.fromTo(
+                char,
+                { opacity: 0, ...from },
+                {
+                  opacity: 1,
+                  x: 0,
+                  y: 0,
+                  duration: 0.7,
+                  delay: i * 0.02,
+                  ease: "back.out(1.7)",
+                }
+              );
+            });
+          } else {
+            // Animate out: fly to different directions
+            chars.forEach((char: HTMLElement, i: number) => {
+              const to = [
+                { x: -100, y: 0 },
+                { x: 100, y: 0 },
+                { x: 0, y: -100 },
+                { x: 0, y: 100 },
+              ][i % 4];
+              gsap.to(char, {
+                opacity: 0,
+                ...to,
+                duration: 0.5,
+                delay: i * 0.01,
+                ease: "power1.in",
+              });
+            });
+          }
+        });
+      },
+      { threshold: 0.5 }
+    );
+    observer.observe(reviewRef.current);
+
+    return () => {
+      observer.disconnect();
+      split.revert();
+    };
+  }, []);
+
+  return (
+    <p ref={reviewRef} className="review-text">
+      {text}
+    </p>
+  );
+}
+
+// AnimatedReviewerName component for animating the reviewer's name with smooth transition on change
+function AnimatedReviewerName({
+  name,
+  profession,
+  uniqueKey,
+}: {
+  name: string;
+  profession: string;
+  uniqueKey: string;
+}) {
+  const nameRef = useRef<HTMLDivElement>(null);
+  const [displayed, setDisplayed] = useState({ name, profession });
+
+  useEffect(() => {
+    if (!nameRef.current) return;
+    // Animate out
+    gsap.to(nameRef.current, {
+      x: 80,
+      opacity: 0,
+      duration: 0.4,
+      ease: "power3.in",
+      onComplete: () => {
+        setDisplayed({ name, profession });
+        // Animate in
+        gsap.fromTo(
+          nameRef.current,
+          { x: -80, opacity: 0 },
+          {
+            x: 0,
+            opacity: 1,
+            duration: 0.7,
+            ease: "power3.out",
+          }
+        );
+      },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uniqueKey]);
+
+  return (
+    <div ref={nameRef} className="flex flex-col items-center mt-2">
+      <div className="font-semibold italic text-gray-900 text-lg">
+        {displayed.name}
+      </div>
+      <div className="text-gray-600 text-sm font-medium">
+        {displayed.profession}
+      </div>
+    </div>
+  );
+}
+
 function ReviewsCarousel() {
   const [start, setStart] = useState(0);
   const visible = 3;
@@ -97,21 +227,20 @@ function ReviewsCarousel() {
   return (
     <div className="relative">
       <div
-        className="flex gap-8 overflow-x-auto scrollbar-none pb-4 md:justify-center"
+        className="flex gap-4 overflow-x-auto scrollbar-none pb-4 md:justify-center"
         style={{ scrollbarWidth: "none" }}
       >
         {reviews.slice(start, start + visible).map((review, i) => (
           <div
             key={i}
-            className="min-w-[340px] max-w-sm bg-white rounded-2xl shadow-lg p-8 flex-shrink-0 flex flex-col justify-between items-center text-center mx-auto border border-gray-100"
+            className="min-w-[280px] sm:min-w-[320px] md:min-w-[350px] max-w-sm bg-white p-3 sm:p-4 flex-shrink-0 flex flex-col justify-between items-center text-center mx-auto"
           >
             <div className="mb-4">
               <span className="text-3xl text-gray-400 mb-2 block">
                 &#8220;&#8221;
               </span>
-              <p className="text-gray-900 text-lg leading-relaxed font-normal">
-                {review.text}
-              </p>
+              {/* Add a key that changes when the review is re-shown */}
+              <AnimatedReview key={`${start}-${i}`} text={review.text} />
             </div>
             <div className="flex justify-center mb-4">
               {[...Array(5)].map((_, j) => (
@@ -130,14 +259,12 @@ function ReviewsCarousel() {
                   className="object-cover"
                 />
               </div>
-              <div>
-                <div className="font-semibold italic text-gray-900 text-lg">
-                  {review.name}
-                </div>
-                <div className="text-gray-600 text-sm font-medium">
-                  {review.profession}
-                </div>
-              </div>
+              <AnimatedReviewerName
+                key={`${start}-${i}`}
+                uniqueKey={`${start}-${i}`}
+                name={review.name}
+                profession={review.profession}
+              />
             </div>
           </div>
         ))}
@@ -571,12 +698,15 @@ export default function ProductPage() {
   const popularCardRefs = Array.from({ length: 8 }, () =>
     useRef<HTMLDivElement>(null)
   );
-  const featureRefs = [
-    useRef<HTMLDivElement>(null),
-    useRef<HTMLDivElement>(null),
-    useRef<HTMLDivElement>(null),
-    useRef<HTMLDivElement>(null),
-  ];
+  const featureRefs = Array.from({ length: 4 }, () =>
+    useRef<HTMLDivElement>(null)
+  );
+  // const featureRefs = [
+  //   useRef<HTMLDivElement>(null),
+  //   useRef<HTMLDivElement>(null),
+  //   useRef<HTMLDivElement>(null),
+  //   useRef<HTMLDivElement>(null),
+  // ];
 
   useEffect(() => {
     // Product Showcase
@@ -659,32 +789,34 @@ export default function ProductPage() {
         });
       }
     });
-    // Features
-    featureRefs.forEach((ref, i) => {
-      if (ref.current) {
-        gsap.set(ref.current, { opacity: 0, y: 40, scale: 0.85 });
-        ScrollTrigger.create({
-          trigger: ref.current,
-          start: "top 98%",
-          onEnter: () =>
-            gsap.to(ref.current, {
-              opacity: 1,
-              y: 0,
-              scale: 1,
-              duration: 0.7,
-              delay: i * 0.09,
-              ease: "expo.out",
-            }),
-          onLeaveBack: () =>
-            gsap.to(ref.current, {
-              opacity: 0,
-              y: 40,
-              scale: 0.85,
-              duration: 0.2,
-            }),
-        });
-      }
-    });
+    // Features (only animate on md and up)
+    if (typeof window !== "undefined" && window.innerWidth >= 768) {
+      featureRefs.forEach((ref, i) => {
+        if (ref.current) {
+          gsap.set(ref.current, { opacity: 0, y: 40, scale: 0.85 });
+          ScrollTrigger.create({
+            trigger: ref.current,
+            start: "top 98%",
+            onEnter: () =>
+              gsap.to(ref.current, {
+                opacity: 1,
+                y: 0,
+                scale: 1,
+                duration: 0.7,
+                delay: i * 0.09,
+                ease: "expo.out",
+              }),
+            onLeaveBack: () =>
+              gsap.to(ref.current, {
+                opacity: 0,
+                y: 40,
+                scale: 0.85,
+                duration: 0.2,
+              }),
+          });
+        }
+      });
+    }
     return () => {
       ScrollTrigger.getAll().forEach((t) => t.kill());
     };
@@ -801,10 +933,10 @@ export default function ProductPage() {
 
   // Add this in the ProductPage component after refs:
   const popularSectionRef = useRef(null);
-  const popularRowRef = useRef(null);
+  const popularRowRef = useRef<HTMLDivElement>(null);
   const popularHeadingRef = useRef(null);
-  const popularImageRefs = useRef([]);
-  const popularNameRefs = useRef([]);
+  const popularImageRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const popularNameRefs = useRef<(HTMLHeadingElement | null)[]>([]);
   const popularProducts = [
     { name: "BAMBOO CANOPY", img: popularImages[0] },
     { name: "BAMBOO BED", img: popularImages[1] },
@@ -819,32 +951,31 @@ export default function ProductPage() {
     import("gsap").then(({ default: gsap }) => {
       import("gsap/ScrollTrigger").then(({ ScrollTrigger }) => {
         gsap.registerPlugin(ScrollTrigger);
-        const section = popularSectionRef.current;
-        const row = popularRowRef.current;
+        const section = popularSectionRef.current as HTMLDivElement | null;
+        const row = popularRowRef.current as HTMLDivElement | null;
         const heading = popularHeadingRef.current;
         const images = popularImageRefs.current;
         const names = popularNameRefs.current;
-        const numProducts = 6;
-        const visible = 3;
-        const scrollWidth =
-          (row.scrollWidth / numProducts) * (numProducts - visible);
+        if (!section || !row) return; // <-- Add this line
+        const scrollWidth = row.scrollWidth - section.offsetWidth;
         // Pin and horizontal scroll
         ScrollTrigger.create({
           trigger: section,
           start: "top top",
-          end: `+=${scrollWidth}`,
+          end: () => "+=" + row.scrollWidth,
           pin: true,
-          scrub: 1,
+          scrub: 1.5, // smoother, slower scroll
           anticipatePin: 1,
           onUpdate: (self) => {
             const progress = self.progress;
             gsap.to(row, {
               x: -progress * scrollWidth,
-              duration: 0.1,
+              duration: 0.3, // increased duration for smoother scroll
               overwrite: "auto",
             });
           },
         });
+
         // Animate heading (bottom to up)
         gsap.fromTo(
           heading,
@@ -860,16 +991,14 @@ export default function ProductPage() {
             },
           }
         );
-        // Animate images (up to down) and names (bottom to up)
+        // Animate images (right to left) and names (left to right)
         images.forEach((img, i) => {
           gsap.fromTo(
             img,
-            { opacity: 0, y: -32 },
+            { x: 40 },
             {
-              opacity: 1,
-              y: 0,
+              x: 0,
               duration: 0.7,
-              delay: i * 0.08,
               ease: "power3.out",
               scrollTrigger: {
                 trigger: section,
@@ -883,12 +1012,11 @@ export default function ProductPage() {
         names.forEach((name, i) => {
           gsap.fromTo(
             name,
-            { opacity: 0, y: 32 },
+            { x: -80 },
             {
-              opacity: 1,
-              y: 0,
+              x: 0,
+
               duration: 0.7,
-              delay: 0.2 + i * 0.08,
               ease: "power3.out",
               scrollTrigger: {
                 trigger: section,
@@ -980,7 +1108,7 @@ export default function ProductPage() {
   }, []);
 
   // Add refs for horizontal FAQ block
-  const horizontalFaqRef = useRef(null);
+  const horizontalFaqRef = useRef<HTMLDivElement>(null);
   const horizontalFaqCardRefs = useRef([]);
 
   // Animate horizontal FAQ heading and cards from bottom to up on enter
@@ -991,7 +1119,7 @@ export default function ProductPage() {
       import("gsap/ScrollTrigger").then(({ ScrollTrigger }) => {
         gsap.registerPlugin(ScrollTrigger);
         // Animate heading
-        const heading = horizontalFaqRef.current.querySelector(
+        const heading = horizontalFaqRef.current?.querySelector(
           ".horizontal-faq-heading"
         );
         if (heading) {
@@ -1032,9 +1160,37 @@ export default function ProductPage() {
     });
   }, []);
 
+  const [showPosterModal, setShowPosterModal] = useState(false);
+
+  useEffect(() => {
+    if (showPosterModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [showPosterModal]);
+
   return (
     <>
-      <div className="relative w-full h-[400px] bg-white flex items-center justify-center overflow-hidden border-b-2 border-[#B8860B]">
+      {/* Poster Modal */}
+      {showPosterModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70" onClick={() => setShowPosterModal(false)}>
+          <div className="relative max-w-2xl w-full mx-4" onClick={e => e.stopPropagation()}>
+            <button
+              className="absolute top-2 right-2 bg-white rounded-full p-1 shadow text-black hover:bg-gray-200"
+              onClick={() => setShowPosterModal(false)}
+              aria-label="Close"
+            >
+              <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path d="M6 6l12 12M6 18L18 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+            </button>
+            <img src="/poster.jpg" alt="اردو پوسٹر" className="w-full max-h-[90vh] object-contain rounded shadow-lg" />
+          </div>
+        </div>
+      )}
+      <div className="relative w-full h-[200px] sm:h-[300px] md:h-[350px] lg:h-[400px] bg-white flex items-center justify-center overflow-hidden border-b-2 border-[#B8860B]">
         {bannerImages.map((img, idx) => (
           <Image
             key={img}
@@ -1053,23 +1209,23 @@ export default function ProductPage() {
               (currentBanner - 1 + bannerImages.length) % bannerImages.length
             )
           }
-          className="absolute left-4 top-1/2 -translate-y-1/2 bg-white border border-[#B8860B] text-[#B8860B] rounded-full w-10 h-10 flex items-center justify-center shadow hover:bg-[#B8860B] hover:text-white transition-colors"
+          className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-white border border-[#B8860B] text-[#B8860B] rounded-full w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center shadow hover:bg-[#B8860B] hover:text-white transition-colors"
         >
-          <ChevronLeft className="w-6 h-6" />
+          <ChevronLeft className="w-4 h-4 sm:w-6 sm:h-6" />
         </button>
         <button
           onClick={() =>
             setCurrentBanner((currentBanner + 1) % bannerImages.length)
           }
-          className="absolute right-4 top-1/2 -translate-y-1/2 bg-white border border-[#B8860B] text-[#B8860B] rounded-full w-10 h-10 flex items-center justify-center shadow hover:bg-[#B8860B] hover:text-white transition-colors"
+          className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-white border border-[#B8860B] text-[#B8860B] rounded-full w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center shadow hover:bg-[#B8860B] hover:text-white transition-colors"
         >
-          <ChevronRight className="w-6 h-6" />
+          <ChevronRight className="w-4 h-4 sm:w-6 sm:h-6" />
         </button>
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+        <div className="absolute bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 flex gap-1 sm:gap-2">
           {bannerImages.map((_, i) => (
             <div
               key={i}
-              className={`w-3 h-3 rounded-full border border-[#B8860B] ${
+              className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full border border-[#B8860B] ${
                 currentBanner === i ? "bg-[#B8860B]" : "bg-white"
               }`}
             ></div>
@@ -1078,10 +1234,10 @@ export default function ProductPage() {
       </div>
       <div className="min-h-screen bg-white">
         {/* Hero Product Section */}
-        <div className="container mx-auto px-4 py-8">
-          <div className="grid lg:grid-cols-2 gap-8 items-start">
+        <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8">
+          <div className="grid lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start">
             {/* Product Image */}
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden">
                 <ProductImageWithLens
                   src={productImages[selectedImage]}
@@ -1089,11 +1245,11 @@ export default function ProductPage() {
                   className="w-full h-full"
                 />
               </div>
-              <div className="flex gap-2 overflow-x-auto">
+              <div className="flex gap-1 sm:gap-2 overflow-x-auto">
                 {productImages.slice(1, 5).map((img, i) => (
                   <div
                     key={i}
-                    className={`relative w-20 h-20 bg-gray-100 rounded-md overflow-hidden flex-shrink-0 cursor-pointer border-2 ${
+                    className={`relative w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-md overflow-hidden flex-shrink-0 cursor-pointer border-2 ${
                       selectedImage === i + 1
                         ? "border-[#B8860B]"
                         : "border-transparent"
@@ -1112,13 +1268,13 @@ export default function ProductPage() {
             </div>
 
             {/* Product Details */}
-            <div className="space-y-6" ref={detailsSectionRef}>
+            <div className="space-y-4 sm:space-y-6" ref={detailsSectionRef}>
               <div
                 ref={(el) => {
                   detailRefs.current[0] = el;
                 }}
               >
-                <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
                   {"Large Bamboo Hanging Wall – Unique & Affordable Wall Art for Home"
                     .split("")
                     .map((char, i) => (
@@ -1142,11 +1298,11 @@ export default function ProductPage() {
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Star
                         key={star}
-                        className="w-5 h-5 fill-black text-black"
+                        className="w-4 h-4 sm:w-5 sm:h-5 fill-black text-black"
                       />
                     ))}
                   </div>
-                  <span className="text-base font-semibold">(66+ ratings)</span>
+                  <span className="text-sm sm:text-base font-semibold">(66+ ratings)</span>
                 </div>
               </div>
               <div
@@ -1155,8 +1311,8 @@ export default function ProductPage() {
                 }}
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xl text-red-600 font-bold">⚡</span>
-                  <span className="font-bold text-lg">
+                  <span className="text-lg sm:text-xl text-red-600 font-bold">⚡</span>
+                  <span className="font-bold text-base sm:text-lg">
                     Selling fast! 10 people have this in their carts.
                   </span>
                 </div>
@@ -1166,12 +1322,12 @@ export default function ProductPage() {
                   detailRefs.current[3] = el;
                 }}
               >
-                <div className="flex items-center gap-4 mb-2">
-                  <span className="text-2xl font-bold">Rs.1,600.00 PKR</span>
-                  <span className="text-xl line-through text-gray-400">
+                <div className="flex items-center gap-2 sm:gap-4 mb-2 flex-wrap">
+                  <span className="text-xl sm:text-2xl font-bold">Rs.1,600.00 PKR</span>
+                  <span className="text-lg sm:text-xl line-through text-gray-400">
                     Rs.2,000.00 PKR
                   </span>
-                  <span className="bg-blue-500 text-white text-sm font-bold px-3 py-1 rounded-full">
+                  <span className="bg-blue-500 text-white text-xs sm:text-sm font-bold px-2 sm:px-3 py-1 rounded-full">
                     20% OFF
                   </span>
                 </div>
@@ -1182,8 +1338,8 @@ export default function ProductPage() {
                 }}
               >
                 <div className="mb-2">
-                  <span className="font-semibold tracking-wide">Color:</span>{" "}
-                  <span className="font-medium">
+                  <span className="font-semibold tracking-wide text-sm sm:text-base">Color:</span>{" "}
+                  <span className="font-medium text-sm sm:text-base">
                     {selectedColor === 0 ? "Green" : "Bamboo Natural"}
                   </span>
                   <div className="flex gap-2 mt-2">
@@ -1192,7 +1348,7 @@ export default function ProductPage() {
                         setSelectedColor(0);
                         setSelectedImage(0);
                       }}
-                      className={`w-10 h-10 rounded-full border-2 flex items-center justify-center overflow-hidden ${
+                      className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 flex items-center justify-center overflow-hidden ${
                         selectedColor === 0
                           ? "border-black ring-2 ring-black"
                           : "border-gray-300"
@@ -1212,7 +1368,7 @@ export default function ProductPage() {
                         setSelectedColor(1);
                         setSelectedImage(1);
                       }}
-                      className={`w-10 h-10 rounded-full border-2 flex items-center justify-center overflow-hidden ${
+                      className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 flex items-center justify-center overflow-hidden ${
                         selectedColor === 1
                           ? "border-black ring-2 ring-black"
                           : "border-gray-300"
@@ -1236,7 +1392,7 @@ export default function ProductPage() {
                 }}
               >
                 <div className="mb-2">
-                  <span className="font-semibold">Quantity</span>
+                  <span className="font-semibold text-sm sm:text-base">Quantity</span>
                   <div className="flex items-center gap-2 mt-2">
                     <Button
                       variant="outline"
@@ -1252,7 +1408,7 @@ export default function ProductPage() {
                       -
                     </Button>
                     <span
-                      className={`px-6 py-2 border rounded text-lg font-bold bg-gray-50 transition-transform duration-200 ${
+                      className={`px-4 sm:px-6 py-2 border rounded text-base sm:text-lg font-bold bg-gray-50 transition-transform duration-200 ${
                         quantityAnim ? "scale-125" : ""
                       }`}
                     >
@@ -1280,17 +1436,18 @@ export default function ProductPage() {
                 }}
               >
                 <div className="flex flex-col sm:flex-row gap-2 mt-4">
-                  <Button className="flex-1 bg-black hover:bg-[#B8860B] text-[#FFD700] text-lg font-bold py-3 flex items-center justify-center">
-                    <ShoppingCart className="w-5 h-5 mr-2 text-[#FFD700]" /> Add
+                  <Button className="flex-1 bg-black hover:bg-[#B8860B] text-[#FFD700] text-base sm:text-lg font-bold py-2 sm:py-3 flex items-center justify-center">
+                    <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-[#FFD700]" /> Add
                     to Cart
                   </Button>
-                  <Button className="flex-1 bg-[#FFD700] hover:bg-black text-black text-lg font-bold py-3 flex items-center justify-center border border-black">
+                  <Button className="flex-1 bg-[#FFD700] hover:bg-black text-black text-base sm:text-lg font-bold py-2 sm:py-3 flex items-center justify-center border border-black">
                     <span className="mr-2">
                       <svg
-                        width="20"
-                        height="20"
+                        width="18"
+                        height="18"
                         fill="none"
                         viewBox="0 0 24 24"
+                        className="sm:w-5 sm:h-5"
                       >
                         <path
                           d="M6 6h15l-1.5 9h-13z"
@@ -1312,8 +1469,8 @@ export default function ProductPage() {
                 }}
               >
                 <div className="flex items-center gap-2 mt-4">
-                  <span className="text-green-600 text-xl">✔</span>
-                  <span>
+                  <span className="text-green-600 text-lg sm:text-xl">✔</span>
+                  <span className="text-sm sm:text-base">
                     Pickup available at{" "}
                     <span className="font-bold">Eco Bamboo</span>. Usually ready
                     in 24 hours
@@ -1329,27 +1486,30 @@ export default function ProductPage() {
                   <DrawerTrigger asChild>
                     <a
                       href="#"
-                      className="text-sm underline text-gray-600 cursor-pointer"
+                      className="text-xs sm:text-sm underline text-gray-600 cursor-pointer"
                     >
                       View store information
                     </a>
                   </DrawerTrigger>
-                  <DrawerContent className="left-0 top-0 bottom-0 fixed w-full max-w-md rounded-none shadow-lg p-8 flex flex-col justify-start items-start bg-white">
-                    <DrawerClose className="absolute top-4 right-4 z-10 bg-transparent border-none p-0 m-0">
-                      <X className="w-7 h-7" />
+                  <DrawerContent className="left-0 top-0 bottom-0 fixed w-full max-w-md rounded-none shadow-lg p-4 sm:p-8 flex flex-col justify-start items-start bg-white">
+                    <DrawerTitle>
+                      <VisuallyHidden>Store Information</VisuallyHidden>
+                    </DrawerTitle>
+                    <DrawerClose className="absolute top-2 sm:top-4 right-2 sm:right-4 z-10 bg-transparent border-none p-0 m-0">
+                      <X className="w-6 h-6 sm:w-7 sm:h-7" />
                     </DrawerClose>
                     <div id="store-info-animate" className="w-full">
-                      <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
+                      <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
                         Large Bamboo Hanging Wall – Unique & Affordable Wall Art
                         for Home
                       </h2>
-                      <div className="mb-2 text-lg">Color: Bamboo Natural</div>
-                      <div className="mb-2 font-bold text-lg">Eco Bamboo</div>
-                      <div className="flex items-center gap-2 mb-2 text-green-700 font-semibold">
-                        <Check className="w-5 h-5" /> Pickup available, usually
+                      <div className="mb-2 text-base sm:text-lg">Color: Bamboo Natural</div>
+                      <div className="mb-2 font-bold text-base sm:text-lg">Eco Bamboo</div>
+                      <div className="flex items-center gap-2 mb-2 text-green-700 font-semibold text-sm sm:text-base">
+                        <Check className="w-4 h-4 sm:w-5 sm:h-5" /> Pickup available, usually
                         ready in 24 hours
                       </div>
-                      <div className="mb-2 text-base">
+                      <div className="mb-2 text-sm sm:text-base">
                         Eco Bambo
                         <br />
                         Karkhane wali abadi,Near pso pump petrol, Nazd Ali Niaz
@@ -1359,7 +1519,7 @@ export default function ProductPage() {
                         <br />
                         Pakistan
                       </div>
-                      <div className="mb-2 text-base font-semibold">
+                      <div className="mb-2 text-sm sm:text-base font-semibold">
                         +923478237147
                       </div>
                     </div>
@@ -1371,14 +1531,14 @@ export default function ProductPage() {
                   detailRefs.current[9] = el;
                 }}
               >
-                <div className="flex items-center gap-6 mt-6">
+                <div className="flex items-center gap-4 sm:gap-6 mt-4 sm:mt-6 flex-wrap">
                   <div className="flex items-center gap-2">
-                    <Truck className="w-5 h-5" />
-                    <span>Delivery & Return</span>
+                    <Truck className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span className="text-sm sm:text-base">Delivery & Return</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Share2 className="w-5 h-5" />
-                    <span>Share</span>
+                    <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span className="text-sm sm:text-base">Share</span>
                   </div>
                 </div>
               </div>
@@ -1387,67 +1547,67 @@ export default function ProductPage() {
                   detailRefs.current[10] = el;
                 }}
               >
-                <div className="flex items-center gap-2 mt-6">
-                  <ShieldCheck className="w-5 h-5" />
-                  <span className="font-semibold">Guarantee Safe Checkout</span>
-                  <span className="flex gap-2 ml-2">
+                <div className="flex items-center gap-2 mt-4 sm:mt-6 flex-wrap">
+                  <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="font-semibold text-sm sm:text-base">Guarantee Safe Checkout</span>
+                  <span className="flex gap-1 sm:gap-2 ml-2">
                     <span
                       className="bg-white rounded shadow p-1 flex items-center justify-center"
-                      style={{ width: 40, height: 28 }}
+                      style={{ width: 32, height: 22 }}
                     >
                       <Image
                         src="/visa.png"
                         alt="Visa"
-                        width={32}
-                        height={20}
+                        width={28}
+                        height={16}
                         style={{ objectFit: "contain" }}
                       />
                     </span>
                     <span
                       className="bg-white rounded shadow p-1 flex items-center justify-center"
-                      style={{ width: 40, height: 28 }}
+                      style={{ width: 32, height: 22 }}
                     >
                       <Image
                         src="/paypal.png"
                         alt="PayPal"
-                        width={32}
-                        height={20}
+                        width={28}
+                        height={16}
                         style={{ objectFit: "contain" }}
                       />
                     </span>
                     <span
                       className="bg-white rounded shadow p-1 flex items-center justify-center"
-                      style={{ width: 40, height: 28 }}
+                      style={{ width: 32, height: 22 }}
                     >
                       <Image
                         src="/mastercard.png"
                         alt="Mastercard"
-                        width={32}
-                        height={20}
+                        width={28}
+                        height={16}
                         style={{ objectFit: "contain" }}
                       />
                     </span>
                     <span
                       className="bg-white rounded shadow p-1 flex items-center justify-center"
-                      style={{ width: 40, height: 28 }}
+                      style={{ width: 32, height: 22 }}
                     >
                       <Image
                         src="/amex.png"
                         alt="Amex"
-                        width={32}
-                        height={20}
+                        width={28}
+                        height={16}
                         style={{ objectFit: "contain" }}
                       />
                     </span>
                     <span
                       className="bg-white rounded shadow p-1 flex items-center justify-center"
-                      style={{ width: 40, height: 28 }}
+                      style={{ width: 32, height: 22 }}
                     >
                       <Image
                         src="/discover.png"
                         alt="Discover"
-                        width={32}
-                        height={20}
+                        width={28}
+                        height={16}
                         style={{ objectFit: "contain" }}
                       />
                     </span>
@@ -1460,10 +1620,10 @@ export default function ProductPage() {
         </div>
 
         {/* Video Section */}
-        <div className="bg-gray-50 py-12">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+        <div className="bg-gray-50 py-8 sm:py-12">
+          <div className="container mx-auto px-3 sm:px-4">
+            <div className="text-center mb-6 sm:mb-8">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">
                 {"How to Assemble Your Wood Art on Accent Wall - Watch Video Now!"
                   .split("")
                   .map((char, i) => (
@@ -1488,9 +1648,9 @@ export default function ProductPage() {
                 <div className="absolute inset-0 flex items-center justify-center">
                   <Button
                     size="lg"
-                    className="rounded-full w-16 h-16 bg-[#B8860B] hover:bg-black text-white"
+                    className="rounded-full w-12 h-12 sm:w-16 sm:h-16 bg-[#B8860B] hover:bg-black text-white"
                   >
-                    <Play className="w-6 h-6 ml-1 text-[#B8860B]" />
+                    <Play className="w-4 h-4 sm:w-6 sm:h-6 ml-1 text-[#B8860B]" />
                   </Button>
                 </div>
               </div>
@@ -1499,10 +1659,10 @@ export default function ProductPage() {
         </div>
 
         {/* DIY Setup Section - Corrected Layout with All Steps */}
-        <div className="py-12">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+        <div className="py-8 sm:py-12">
+          <div className="container mx-auto px-3 sm:px-4">
+            <div className="text-center mb-8 sm:mb-12">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">
                 {"Easy DIY Setup: Home Wall Art Décor"
                   .split("")
                   .map((char, i) => (
@@ -1515,9 +1675,26 @@ export default function ProductPage() {
                     </span>
                   ))}
               </h2>
+              {/* Urdu/Download Buttons */}
+              <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 mt-4">
+                <button
+                  type="button"
+                  className="px-4 sm:px-6 py-2 bg-[#B8860B] text-white rounded font-semibold shadow hover:bg-black transition text-sm sm:text-base"
+                  onClick={() => setShowPosterModal(true)}
+                >
+                  اردو میں پڑھیں
+                </button>
+                <a
+                  href="/poster.jpg"
+                  download
+                  className="px-4 sm:px-6 py-2 bg-black text-[#FFD700] rounded font-semibold shadow hover:bg-[#B8860B] hover:text-white transition text-center text-sm sm:text-base"
+                >
+                  ڈاؤن لوڈ کریں
+                </a>
+              </div>
             </div>
 
-            <div className="relative max-w-6xl mx-auto py-16">
+            <div className="relative max-w-6xl mx-auto py-8 sm:py-16">
               {/* Vertical timeline line */}
               <div
                 className="hidden lg:block absolute top-0 left-1/2 -translate-x-1/2 h-full w-1 bg-gray-300 z-0"
@@ -1529,9 +1706,9 @@ export default function ProductPage() {
                 className="hidden lg:block absolute top-0 left-1/2 -translate-x-1/2 w-1 bg-black z-10"
                 style={{ height: "0%" }}
               />
-              <div className="space-y-40 relative z-20">
+              <div className="space-y-20 sm:space-y-32 lg:space-y-40 relative z-20">
                 {/* Step 1 */}
-                <div className="grid lg:grid-cols-2 gap-x-20 gap-y-10 items-center relative justify-items-center">
+                <div className="grid lg:grid-cols-2 gap-x-8 sm:gap-x-12 lg:gap-x-20 gap-y-6 sm:gap-y-8 lg:gap-y-10 items-center relative justify-items-center">
                   {/* Animated circle */}
                   <div className="hidden lg:block absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30">
                     <div
@@ -1549,11 +1726,11 @@ export default function ProductPage() {
                   {/* Image left, text right */}
                   <div
                     ref={step1ImgRef}
-                    className="flex justify-center w-full max-w-lg pr-8"
+                    className="flex justify-center w-full max-w-lg pr-4 sm:pr-8"
                   >
                     <div
                       id="step-img-1"
-                      className="relative w-full max-w-[540px] aspect-square bg-gray-100 rounded-lg overflow-hidden sm:max-w-xs md:max-w-md lg:max-w-[540px]"
+                      className="relative w-full max-w-[280px] sm:max-w-[400px] md:max-w-[480px] lg:max-w-[540px] aspect-square bg-gray-100 rounded-lg overflow-hidden"
                     >
                       <ProductImageWithLens
                         src={diyImages[0]}
@@ -1562,10 +1739,10 @@ export default function ProductPage() {
                       />
                     </div>
                   </div>
-                  <div className="space-y-4 w-full max-w-[540px] mx-auto text-center lg:text-left lg:mx-0 pl-8">
+                  <div className="space-y-3 sm:space-y-4 w-full max-w-[280px] sm:max-w-[400px] md:max-w-[480px] lg:max-w-[540px] mx-auto text-center lg:text-left lg:mx-0 pl-4 sm:pl-8">
                     <h3
                       ref={step1HeadingRef}
-                      className="text-2xl font-bold text-gray-900 mb-4"
+                      className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 mb-3 sm:mb-4"
                     >
                       <span ref={step1ScrollTextRef}>
                         <RotatingScrollText
@@ -1576,7 +1753,7 @@ export default function ProductPage() {
                     </h3>
                     <p
                       ref={step1ParaRef}
-                      className="text-gray-600 leading-relaxed text-lg"
+                      className="text-sm sm:text-base lg:text-lg text-gray-600 leading-relaxed"
                     >
                       Elevate your walls with eco-friendly bamboo hanging art.
                       Perfect for homes, kitchens, bedrooms, guest areas, and
@@ -1590,7 +1767,7 @@ export default function ProductPage() {
                   </div>
                 </div>
                 {/* Step 2 */}
-                <div className="grid lg:grid-cols-2 gap-x-20 gap-y-10 items-center relative justify-items-center">
+                <div className="grid lg:grid-cols-2 gap-x-8 sm:gap-x-12 lg:gap-x-20 gap-y-6 sm:gap-y-8 lg:gap-y-10 items-center relative justify-items-center">
                   {/* Animated circle */}
                   <div className="hidden lg:block absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30">
                     <div
@@ -1606,10 +1783,10 @@ export default function ProductPage() {
                     </div>
                   </div>
                   {/* Text left, image right */}
-                  <div className="space-y-4 order-2 lg:order-1 w-full max-w-lg">
+                  <div className="space-y-3 sm:space-y-4 order-2 lg:order-1 w-full max-w-[280px] sm:max-w-[400px] md:max-w-[480px] lg:max-w-lg">
                     <h3
                       ref={step2HeadingRef}
-                      className="text-2xl font-bold text-gray-900 mb-4"
+                      className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 mb-3 sm:mb-4"
                     >
                       <span ref={step2ScrollTextRef}>
                         <RotatingScrollText
@@ -1620,7 +1797,7 @@ export default function ProductPage() {
                     </h3>
                     <p
                       ref={step2ParaRef}
-                      className="text-gray-600 leading-relaxed text-lg"
+                      className="text-sm sm:text-base lg:text-lg text-gray-600 leading-relaxed"
                     >
                       Begin the assembly process by carefully connecting each
                       bamboo piece according to the provided instructions. Take
@@ -1633,11 +1810,11 @@ export default function ProductPage() {
                   </div>
                   <div
                     ref={step2ImgRef}
-                    className="flex justify-center order-1 lg:order-2 w-full max-w-lg"
+                    className="flex justify-center order-1 lg:order-2 w-full max-w-[280px] sm:max-w-[400px] md:max-w-[480px] lg:max-w-lg"
                   >
                     <div
                       id="step-img-2"
-                      className="relative w-full max-w-[540px] aspect-square bg-gray-100 rounded-lg overflow-hidden sm:max-w-xs md:max-w-md lg:max-w-[540px]"
+                      className="relative w-full max-w-[280px] sm:max-w-[400px] md:max-w-[480px] lg:max-w-[540px] aspect-square bg-gray-100 rounded-lg overflow-hidden"
                     >
                       <Image
                         src={diyImages[1]}
@@ -1649,7 +1826,7 @@ export default function ProductPage() {
                   </div>
                 </div>
                 {/* Step 3 */}
-                <div className="grid lg:grid-cols-2 gap-x-20 gap-y-10 items-center relative justify-items-center">
+                <div className="grid lg:grid-cols-2 gap-x-8 sm:gap-x-12 lg:gap-x-20 gap-y-6 sm:gap-y-8 lg:gap-y-10 items-center relative justify-items-center">
                   {/* Animated circle */}
                   <div className="hidden lg:block absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30">
                     <div
@@ -1667,11 +1844,11 @@ export default function ProductPage() {
                   {/* Image left, text right */}
                   <div
                     ref={step3ImgRef}
-                    className="flex justify-center w-full max-w-lg"
+                    className="flex justify-center w-full max-w-[280px] sm:max-w-[400px] md:max-w-[480px] lg:max-w-lg"
                   >
                     <div
                       id="step-img-3"
-                      className="relative w-full max-w-[540px] aspect-square bg-gray-100 rounded-lg overflow-hidden sm:max-w-xs md:max-w-md lg:max-w-[540px]"
+                      className="relative w-full max-w-[280px] sm:max-w-[400px] md:max-w-[480px] lg:max-w-[540px] aspect-square bg-gray-100 rounded-lg overflow-hidden"
                     >
                       <Image
                         src={diyImages[2]}
@@ -1681,10 +1858,10 @@ export default function ProductPage() {
                       />
                     </div>
                   </div>
-                  <div className="space-y-4 w-full max-w-[540px] mx-auto text-center lg:text-left lg:mx-0">
+                  <div className="space-y-3 sm:space-y-4 w-full max-w-[280px] sm:max-w-[400px] md:max-w-[480px] lg:max-w-[540px] mx-auto text-center lg:text-left lg:mx-0">
                     <h3
                       ref={step3HeadingRef}
-                      className="text-2xl font-bold text-gray-900 mb-4"
+                      className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 mb-3 sm:mb-4"
                     >
                       <span ref={step3ScrollTextRef}>
                         <RotatingScrollText
@@ -1695,7 +1872,7 @@ export default function ProductPage() {
                     </h3>
                     <p
                       ref={step3ParaRef}
-                      className="text-gray-600 leading-relaxed text-lg"
+                      className="text-sm sm:text-base lg:text-lg text-gray-600 leading-relaxed"
                     >
                       Once your bamboo art piece is fully assembled, it's time
                       to mount it securely to your chosen wall. Use the provided
@@ -1708,7 +1885,7 @@ export default function ProductPage() {
                   </div>
                 </div>
                 {/* Step 4 */}
-                <div className="grid lg:grid-cols-2 gap-x-20 gap-y-10 items-center relative justify-items-center">
+                <div className="grid lg:grid-cols-2 gap-x-8 sm:gap-x-12 lg:gap-x-20 gap-y-6 sm:gap-y-8 lg:gap-y-10 items-center relative justify-items-center">
                   {/* Animated circle */}
                   <div className="hidden lg:block absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30">
                     <div
@@ -1724,10 +1901,10 @@ export default function ProductPage() {
                     </div>
                   </div>
                   {/* Text left, image right */}
-                  <div className="space-y-4 order-2 lg:order-1 w-full max-w-lg">
+                  <div className="space-y-3 sm:space-y-4 order-2 lg:order-1 w-full max-w-[280px] sm:max-w-[400px] md:max-w-[480px] lg:max-w-lg">
                     <h3
                       ref={step4HeadingRef}
-                      className="text-2xl font-bold text-gray-900 mb-4"
+                      className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 mb-3 sm:mb-4"
                     >
                       <span ref={step4ScrollTextRef}>
                         <RotatingScrollText
@@ -1738,7 +1915,7 @@ export default function ProductPage() {
                     </h3>
                     <p
                       ref={step4ParaRef}
-                      className="text-gray-600 leading-relaxed text-lg"
+                      className="text-sm sm:text-base lg:text-lg text-gray-600 leading-relaxed"
                     >
                       Congratulations! Your beautiful bamboo wall art is now
                       ready to transform your space. Step back and admire your
@@ -1751,11 +1928,11 @@ export default function ProductPage() {
                   </div>
                   <div
                     ref={step4ImgRef}
-                    className="flex justify-center order-1 lg:order-2 w-full max-w-lg"
+                    className="flex justify-center order-1 lg:order-2 w-full max-w-[280px] sm:max-w-[400px] md:max-w-[480px] lg:max-w-lg"
                   >
                     <div
                       id="step-img-4"
-                      className="relative w-full max-w-[540px] aspect-square bg-gray-100 rounded-lg overflow-hidden sm:max-w-xs md:max-w-md lg:max-w-[540px]"
+                      className="relative w-full max-w-[280px] sm:max-w-[400px] md:max-w-[480px] lg:max-w-[540px] aspect-square bg-gray-100 rounded-lg overflow-hidden"
                     >
                       <Image
                         src={diyImages[3]}
@@ -1772,27 +1949,27 @@ export default function ProductPage() {
         </div>
 
         {/* Bathroom Art Decor Section */}
-        <section className="w-full bg-gray-50 py-16">
-          <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+        <section className="w-full bg-gray-50 py-12 sm:py-16">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 items-center">
             {/* Left: Text */}
-            <div className="space-y-6 md:pr-8">
-              <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-2 text-left">
+            <div className="space-y-4 sm:space-y-6 md:pr-4 lg:pr-8">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-2 text-left">
                 Bathroom Art Decor
               </h2>
-              <h3 className="text-2xl md:text-3xl font-medium text-gray-800 mb-4 text-left">
+              <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-medium text-gray-800 mb-3 sm:mb-4 text-left">
                 Compact Vertical Display Crafted for Tight Urban Spaces
               </h3>
-              <p className="text-lg md:text-xl text-gray-700 font-normal mb-4 text-left">
+              <p className="text-base sm:text-lg md:text-xl text-gray-700 font-normal mb-3 sm:mb-4 text-left">
                 A compact bamboo hanging wall that blends natural warmth with
                 modern simplicity.
               </p>
-              <p className="text-base text-gray-600 font-normal mb-8 text-left">
+              <p className="text-sm sm:text-base text-gray-600 font-normal mb-6 sm:mb-8 text-left">
                 "Compact Bamboo Wall Display"*
               </p>
-              <button className="px-8 py-3 bg-black text-[#FFD700] rounded shadow font-semibold text-lg flex items-center gap-2 w-fit hover:bg-[#B8860B] hover:text-white transition">
+              <button className="px-6 sm:px-8 py-2 sm:py-3 bg-black text-[#FFD700] rounded shadow font-semibold text-base sm:text-lg flex items-center gap-2 w-fit hover:bg-[#B8860B] hover:text-white transition">
                 Shop Now
                 <span>
-                  <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
+                  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" className="sm:w-6 sm:h-6">
                     <path
                       d="M5 12h14m0 0l-6-6m6 6l-6 6"
                       stroke="currentColor"
@@ -1806,7 +1983,7 @@ export default function ProductPage() {
             </div>
             {/* Right: Image */}
             <div className="flex justify-center items-center">
-              <div className="relative w-full max-w-xl aspect-square bg-gray-100 rounded-lg overflow-hidden">
+              <div className="relative w-full max-w-[280px] sm:max-w-[400px] md:max-w-xl aspect-square bg-gray-100 rounded-lg overflow-hidden">
                 <Image
                   src={bathroomImages[0]}
                   alt="Bathroom Art Decor"
@@ -1819,13 +1996,13 @@ export default function ProductPage() {
         </section>
 
         {/* Product Showcase Section */}
-        <div className="py-12">
-          <div className="container mx-auto px-4">
+        <div className="py-8 sm:py-12">
+          <div className="container mx-auto px-3 sm:px-4">
             <div className="relative">
-              <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto mt-16">
+              <div className="grid md:grid-cols-2 gap-6 sm:gap-8 max-w-4xl mx-auto mt-12 sm:mt-16">
                 {/* Small Pot */}
-                <div ref={showcaseRefs[0]} className="flex gap-6 items-center">
-                  <div className="relative w-32 h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                <div ref={showcaseRefs[0]} className="flex gap-4 sm:gap-6 items-center">
+                  <div className="relative w-24 h-24 sm:w-32 sm:h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                     <Image
                       src={potImages[0]}
                       alt="Small bamboo pot"
@@ -1833,22 +2010,22 @@ export default function ProductPage() {
                       className="object-cover"
                     />
                   </div>
-                  <div className="space-y-3">
-                    <h3 className="text-xl font-bold text-gray-900">
+                  <div className="space-y-2 sm:space-y-3">
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-900">
                       Small Pot
                     </h3>
-                    <p className="text-gray-600">
+                    <p className="text-sm sm:text-base text-gray-600">
                       A handcrafted small bamboo pot that ads charm to any plant
                       display.
                     </p>
-                    <button className="hover:text-blue-900 hover:underline hover:font-bold transition-all duration-300 z-1000">
+                    <button className="hover:text-blue-900 hover:underline hover:font-bold transition-all duration-300 z-1000 text-sm sm:text-base">
                       Purchase Now
                     </button>
                   </div>
                 </div>
                 {/* Big Pot */}
-                <div ref={showcaseRefs[1]} className="flex gap-6 items-center">
-                  <div className="relative w-32 h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                <div ref={showcaseRefs[1]} className="flex gap-4 sm:gap-6 items-center">
+                  <div className="relative w-24 h-24 sm:w-32 sm:h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                     <Image
                       src={potImages[1]}
                       alt="Big bamboo pot"
@@ -1856,13 +2033,13 @@ export default function ProductPage() {
                       className="object-cover"
                     />
                   </div>
-                  <div className="space-y-3">
-                    <h3 className="text-xl font-bold text-gray-900">Big Pot</h3>
-                    <p className="text-gray-600">
+                  <div className="space-y-2 sm:space-y-3">
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-900">Big Pot</h3>
+                    <p className="text-sm sm:text-base text-gray-600">
                       Bamboo flower pot designed to elevate larger plant
                       displays.
                     </p>
-                    <button className="hover:text-blue-900 hover:underline hover:font-bold transition-all duration-300 z-1000">
+                    <button className="hover:text-blue-900 hover:underline hover:font-bold transition-all duration-300 z-1000 text-sm sm:text-base">
                       Purchase Now
                     </button>
                   </div>
@@ -1873,9 +2050,9 @@ export default function ProductPage() {
         </div>
 
         {/* Insert this JSX after the Small Pot/Big Pot section and before reviews: */}
-        <section className="w-full py-16 bg-white">
-          <div className="max-w-7xl mx-auto px-4">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-12 text-center heading-animate">
+        <section className="w-full py-12 sm:py-16 bg-white">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-8 sm:mb-12 text-center heading-animate">
               Customers Love Our Hanging Tapestry – Read Their Reviews!
             </h2>
             <ReviewsCarousel />
@@ -1885,90 +2062,66 @@ export default function ProductPage() {
         {/* Popular Products Section */}
         <section
           ref={popularSectionRef}
-          className="py-12 bg-gray-70 relative overflow-x-hidden"
+          className="w-full overflow-hidden py-12 sm:py-20 bg-white min-h-[400px] sm:min-h-[600px]"
         >
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                {"Explore Full Collection!".split("").map((char, i) => (
-                  <span
-                    key={i}
-                    className="inline-block heading-char"
-                    style={{ display: "inline-block" }}
+          <h2
+            ref={popularHeadingRef}
+            className="text-center text-xl sm:text-2xl font-bold mb-8 sm:mb-12 px-3 sm:px-4"
+          >
+            ALL TIME <span className="text-[#B8860B]">POPULAR</span> PRODUCTS
+          </h2>
+          <div className="relative">
+            <div ref={popularRowRef} className="flex gap-4 sm:gap-8 w-max px-4 sm:px-10">
+              {popularProducts.map((item, i) => (
+                <div
+                  key={i}
+                  className="w-[200px] sm:w-[300px] flex-shrink-0 text-center"
+                  ref={(el) => {
+                    popularImageRefs.current[i] = el;
+                  }}
+                >
+                  <Image
+                    src={item.img}
+                    alt={item.name}
+                    width={300}
+                    height={300}
+                    className="rounded-lg mx-auto w-full h-auto"
+                  />
+                  <h3
+                    ref={(el) => {
+                      popularNameRefs.current[i] = el;
+                    }}
+                    className="mt-3 sm:mt-4 text-base sm:text-lg font-semibold text-gray-800"
                   >
-                    {char === " " ? "\u00A0" : char}
-                  </span>
-                ))}
-              </h2>
-              <h3
-                ref={popularHeadingRef}
-                className="text-xl font-semibold text-4xl py-4 text-gray-800 opacity-0 translate-y-8"
-              >
-                ALL TIME POPULAR PRODUCTS
-              </h3>
-            </div>
-            <div className="relative">
-              <div
-                ref={popularRowRef}
-                className="flex gap-8 overflow-x-auto scrollbar-none snap-x snap-mandatory pb-4 md:justify-center"
-                style={{ scrollbarWidth: "none" }}
-              >
-                {popularProducts.map((item, i) => (
-                  <div
-                    key={i}
-                    className="bg-white flex flex-col items-center min-w-[320px] max-w-xs rounded-2xl shadow-lg p-6 flex-shrink-0 snap-center border border-gray-100"
-                  >
-                    <div
-                      ref={(el) => (popularImageRefs.current[i] = el)}
-                      className="relative w-full aspect-square bg-gray-100 rounded-lg overflow-hidden mb-4"
-                    >
-                      <Image
-                        src={item.img}
-                        alt={item.name}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                    <div className="py-2 w-full text-center">
-                      <h4
-                        ref={(el) => (popularNameRefs.current[i] = el)}
-                        className="font-bold text-gray-900 text-lg tracking-widest opacity-0 translate-y-8"
-                        style={{ letterSpacing: "0.08em" }}
-                      >
-                        {item.name}
-                      </h4>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <style jsx global>{`
-                .scrollbar-none::-webkit-scrollbar {
-                  display: none;
-                }
-                .scrollbar-none {
-                  -ms-overflow-style: none;
-                  scrollbar-width: none;
-                }
-              `}</style>
+                    {item.name}
+                  </h3>
+                </div>
+              ))}
             </div>
           </div>
         </section>
 
         {/* Features Section */}
-        <div className="py-8">
-          <div className="container mx-auto px-4">
-            <div className="grid md:grid-cols-4 gap-6 text-center">
+        <div className="py-6 sm:py-8">
+          <div className="container mx-auto px-3 sm:px-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-y-8 sm:gap-y-10 gap-x-4 sm:gap-x-6 text-center">
               {[0, 1, 2, 3].map((i) => (
-                <div ref={featureRefs[i]} key={i} className="space-y-2">
-                  {
-                    [
-                      <Truck className="w-12 h-12 mx-auto mb-3 text-[#B8860B]" />,
-                      <Undo2 className="w-12 h-12 mx-auto mb-3 text-[#B8860B]" />,
-                      <ShieldCheck className="w-12 h-12 mx-auto mb-3 text-[#B8860B]" />,
-                      <Headphones className="w-12 h-12 mx-auto mb-3 text-[#B8860B]" />,
-                    ][i]
-                  }
-                  <h4 className="font-semibold text-gray-900">
+                <div
+                  key={i}
+                  ref={(el) => { featureRefs[i].current = el; }}
+                  className="flex flex-col items-center justify-center space-y-2"
+                >
+                  <div className="text-[#B8860B]">
+                    {
+                      [
+                        <Truck className="w-8 h-8 sm:w-12 sm:h-12" />,
+                        <Undo2 className="w-8 h-8 sm:w-12 sm:h-12" />,
+                        <ShieldCheck className="w-8 h-8 sm:w-12 sm:h-12" />,
+                        <Headphones className="w-8 h-8 sm:w-12 sm:h-12" />,
+                      ][i]
+                    }
+                  </div>
+                  <div className="font-semibold text-gray-900 text-sm sm:text-base md:text-lg">
                     {
                       [
                         "Free Shipping",
@@ -1977,8 +2130,8 @@ export default function ProductPage() {
                         "24/7 Support",
                       ][i]
                     }
-                  </h4>
-                  <p className="text-gray-600 text-sm">
+                  </div>
+                  <div className="text-gray-600 text-xs sm:text-sm md:text-base">
                     {
                       [
                         "On orders over Rs.8,000 PKR",
@@ -1987,7 +2140,7 @@ export default function ProductPage() {
                         "Customer service",
                       ][i]
                     }
-                  </p>
+                  </div>
                 </div>
               ))}
             </div>
