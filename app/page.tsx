@@ -213,20 +213,18 @@ function AnimatedReviewerName({
 
 function ReviewsCarousel() {
   const [start, setStart] = useState(0);
-  // Show 1 on mobile, 3 on desktop
-  const visible = typeof window !== 'undefined' && window.innerWidth < 640 ? 1 : 3;
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const visible = isMobile ? 1 : 3;
   const canPrev = start > 0;
   const canNext = start + visible < reviews.length;
-
-  // Responsive: update visible on resize
-  useEffect(() => {
-    const handleResize = () => {
-      // force re-render
-      setStart((s) => s);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   const handlePrev = () => {
     if (canPrev) setStart(start - 1);
@@ -241,70 +239,90 @@ function ReviewsCarousel() {
         className="flex gap-4 overflow-x-auto scrollbar-none pb-4 md:justify-center flex-nowrap"
         style={{ scrollbarWidth: "none" }}
       >
-        {reviews.slice(start, start + (window.innerWidth < 640 ? reviews.length : visible)).map((review, i) => (
-          <div
-            key={i}
-            className={`$${window.innerWidth < 640 ? 'min-w-full max-w-full' : 'min-w-[350px] max-w-sm'} bg-white p-4 flex-shrink-0 flex flex-col justify-between items-center text-center mx-auto`}
-            style={window.innerWidth < 640 ? { scrollSnapAlign: 'start' } : {}}
-          >
-            <div className="mb-4">
-              <span className="text-3xl text-gray-400 mb-2 block">
-                &#8220;&#8221;
-              </span>
-              <AnimatedReview key={`${start}-${i}`} text={review.text} />
-            </div>
-            <div className="flex justify-center mb-4">
-              {[...Array(5)].map((_, j) => (
-                <Star
-                  key={j}
-                  className="w-5 h-5 fill-[#B8860B] text-[#B8860B]"
-                />
-              ))}
-            </div>
-            <div className="flex flex-col items-center mt-2">
-              <div className="relative w-16 h-16 rounded-full overflow-hidden mb-2 border-2 border-[#B8860B]">
-                <Image
-                  src={review.avatar}
-                  alt={review.name}
-                  fill
-                  className="object-cover"
-                />
+        {isMobile
+          ? reviews.map((review, i) => (
+              <div
+                key={i}
+                className="min-w-full max-w-full bg-white p-4 flex-shrink-0 flex flex-col justify-between items-center text-center mx-auto"
+                style={{ scrollSnapAlign: 'start' }}
+              >
+                <div className="mb-4">
+                  <span className="text-3xl text-gray-400 mb-2 block">&#8220;&#8221;</span>
+                  <AnimatedReview key={`mobile-${i}`} text={review.text} />
+                </div>
+                <div className="flex justify-center mb-4">
+                  {[...Array(5)].map((_, j) => (
+                    <Star key={j} className="w-5 h-5 fill-[#B8860B] text-[#B8860B]" />
+                  ))}
+                </div>
+                <div className="flex flex-col items-center mt-2">
+                  <div className="relative w-16 h-16 rounded-full overflow-hidden mb-2 border-2 border-[#B8860B]">
+                    <Image src={review.avatar} alt={review.name} fill className="object-cover" />
+                  </div>
+                  <AnimatedReviewerName
+                    key={`mobile-${i}`}
+                    uniqueKey={`mobile-${i}`}
+                    name={review.name}
+                    profession={review.profession}
+                  />
+                </div>
               </div>
-              <AnimatedReviewerName
-                key={`${start}-${i}`}
-                uniqueKey={`${start}-${i}`}
-                name={review.name}
-                profession={review.profession}
-              />
-            </div>
-          </div>
-        ))}
+            ))
+          : reviews.slice(start, start + visible).map((review, i) => (
+              <div
+                key={i}
+                className="min-w-[350px] max-w-sm bg-white p-4 flex-shrink-0 flex flex-col justify-between items-center text-center mx-auto"
+              >
+                <div className="mb-4">
+                  <span className="text-3xl text-gray-400 mb-2 block">&#8220;&#8221;</span>
+                  <AnimatedReview key={`${start}-${i}`} text={review.text} />
+                </div>
+                <div className="flex justify-center mb-4">
+                  {[...Array(5)].map((_, j) => (
+                    <Star key={j} className="w-5 h-5 fill-[#B8860B] text-[#B8860B]" />
+                  ))}
+                </div>
+                <div className="flex flex-col items-center mt-2">
+                  <div className="relative w-16 h-16 rounded-full overflow-hidden mb-2 border-2 border-[#B8860B]">
+                    <Image src={review.avatar} alt={review.name} fill className="object-cover" />
+                  </div>
+                  <AnimatedReviewerName
+                    key={`${start}-${i}`}
+                    uniqueKey={`${start}-${i}`}
+                    name={review.name}
+                    profession={review.profession}
+                  />
+                </div>
+              </div>
+            ))}
       </div>
       {/* Hide arrows on mobile, show on sm+ */}
-      <div className="hidden sm:flex justify-center gap-2 mt-6">
-        <Button
-          variant="outline"
-          size="icon"
-          className={`rounded-full bg-[#B8860B] text-white border-[#B8860B] ${
-            !canPrev ? "opacity-50 cursor-not-allowed" : ""
-          }`}
-          onClick={handlePrev}
-          disabled={!canPrev}
-        >
-          <ChevronLeft className="w-4 h-4" />
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          className={`rounded-full bg-[#B8860B] text-white border-[#B8860B] ${
-            !canNext ? "opacity-50 cursor-not-allowed" : ""
-          }`}
-          onClick={handleNext}
-          disabled={!canNext}
-        >
-          <ChevronRight className="w-4 h-4" />
-        </Button>
-      </div>
+      {!isMobile && (
+        <div className="flex justify-center gap-2 mt-6">
+          <Button
+            variant="outline"
+            size="icon"
+            className={`rounded-full bg-[#B8860B] text-white border-[#B8860B] ${
+              !canPrev ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+            onClick={handlePrev}
+            disabled={!canPrev}
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className={`rounded-full bg-[#B8860B] text-white border-[#B8860B] ${
+              !canNext ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+            onClick={handleNext}
+            disabled={!canNext}
+          >
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
       <style jsx global>{`
         .scrollbar-none::-webkit-scrollbar {
           display: none;
@@ -1652,7 +1670,7 @@ export default function ProductPage() {
             <div className="max-w-4xl mx-auto">
               <div className="relative aspect-video bg-gray-200 rounded-lg overflow-hidden">
                 <Image
-                  src="/placeholder.svg?height=400&width=800"
+                  src="https://via.placeholder.com/800x400"
                   alt="Assembly video thumbnail"
                   fill
                   className="object-cover"
