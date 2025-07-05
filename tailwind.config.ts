@@ -88,6 +88,26 @@ const config: Config = {
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
   			'accordion-up': 'accordion-up 0.2s ease-out'
+  		},
+  		fontFamily: {
+  			'dm-sans': [
+  				'DM Sans',
+  				'ui-sans-serif',
+  				'system-ui',
+  				'sans-serif',
+  			],
+  			'jost': [
+  				'Jost',
+  				'ui-sans-serif',
+  				'system-ui',
+  				'sans-serif',
+  			],
+  			'albert-sans': [
+  				'Albert Sans',
+  				'ui-sans-serif',
+  				'system-ui',
+  				'sans-serif',
+  			],
   		}
   	}
   },
