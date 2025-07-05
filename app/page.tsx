@@ -360,8 +360,11 @@ function ReviewsCarousel() {
 
 export default function ProductPage() {
   const animateHeading = (heading: HTMLElement) => {
-    const chars = heading.querySelectorAll(".heading-char");
+    // Split the text into characters using SplitType
+    const split = new SplitType(heading, { types: "chars" });
+    const chars = heading.querySelectorAll(".char");
     if (!chars.length) return;
+
     const handleMouseMove = (e: MouseEvent) => {
       const rect = heading.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
@@ -390,6 +393,13 @@ export default function ProductPage() {
     };
     heading.addEventListener("mousemove", handleMouseMove);
     heading.addEventListener("mouseleave", handleMouseLeave);
+
+    // Return cleanup function
+    return () => {
+      split.revert();
+      heading.removeEventListener("mousemove", handleMouseMove);
+      heading.removeEventListener("mouseleave", handleMouseLeave);
+    };
   };
 
   const priceRef = useRef<HTMLDivElement>(null);
@@ -397,10 +407,13 @@ export default function ProductPage() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     let observer: IntersectionObserver | null = null;
+    const cleanupFunctions: (() => void)[] = [];
+
     import("gsap").then((mod) => {
       (window as any).gsap = mod.gsap;
       document.querySelectorAll("h1, h2, h3").forEach((heading) => {
-        animateHeading(heading as HTMLElement);
+        const cleanup = animateHeading(heading as HTMLElement);
+        if (cleanup) cleanupFunctions.push(cleanup);
       });
       if (priceRef.current) {
         const animatePrice = () => {
@@ -444,6 +457,7 @@ export default function ProductPage() {
     });
     return () => {
       if (observer && priceRef.current) observer.unobserve(priceRef.current);
+      cleanupFunctions.forEach((cleanup) => cleanup());
     };
   }, [priceRef]);
 
@@ -512,6 +526,7 @@ export default function ProductPage() {
   const [quantity, setQuantity] = useState(1);
   const [quantityAnim, setQuantityAnim] = useState(false);
   const [selectedSize, setSelectedSize] = useState("Medium");
+  const [showReturnsModal, setShowReturnsModal] = useState(false);
 
   const detailRefs = useRef<(HTMLDivElement | null)[]>([]);
   const detailsSectionRef = useRef<HTMLDivElement>(null);
@@ -614,16 +629,15 @@ export default function ProductPage() {
       if (step.img) {
         gsap.set(step.img, {
           opacity: 0,
-          scaleY: 0.2,
-          transformOrigin: idx % 2 === 0 ? "top center" : "bottom center",
+          x: -80,
         });
         gsap.to(step.img, {
           scrollTrigger: {
             trigger: step.img,
-            start: "top 60%",
+            start: "top 75%",
           },
           opacity: 1,
-          scaleY: 1,
+          x: 0,
           duration: 0.9,
           ease: "expo.out",
         });
@@ -1257,6 +1271,54 @@ export default function ProductPage() {
     });
   }, []);
 
+  // Add before the return in ProductPage
+  const [videoInView, setVideoInView] = useState(false);
+  const videoRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const observer = new window.IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) setVideoInView(true);
+        });
+      },
+      { threshold: 0.5 }
+    );
+    if (videoRef.current) observer.observe(videoRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  // Add state for share popover
+  const [showSharePopover, setShowSharePopover] = useState(false);
+  const shareBtnRef = useRef(null);
+
+  // Collage refs for animation
+  const collageLeftRef = useRef(null);
+  const collageTopRightRef = useRef(null);
+  const collageBottomRightRef = useRef(null);
+
+  useEffect(() => {
+    gsap.registerPlugin(ScrollTrigger);
+    const items = [collageLeftRef, collageTopRightRef, collageBottomRightRef];
+    items.forEach((ref) => {
+      if (!ref.current) return;
+      gsap.fromTo(
+        ref.current,
+        { y: 60, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.9,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: ref.current,
+            start: "top 60%",
+            toggleActions: "play none none none",
+          },
+        }
+      );
+    });
+  }, []);
+
   return (
     <>
       {/* Poster Modal */}
@@ -1333,7 +1395,6 @@ export default function ProductPage() {
           ))}
         </div>
       </div>
-      {/* Example main heading for HERO/BANNER section (add if not present) */}
       {/* <h1 className="font-dm-sans text-[40px] font-semibold leading-[1.25em] tracking-[-0.02em] text-center mt-8">Welcome to EcoBamboo</h1> */}
       <div className="min-h-screen bg-white">
         {/* Hero Product Section */}
@@ -1378,8 +1439,7 @@ export default function ProductPage() {
                 }}
               >
                 <h1 className="font-albert-sans text-[28px] font-bold leading-[1.25em] text-gray-900 mb-2">
-                  Large Bamboo Hanging Wall – Unique & Affordable Wall Art for
-                  Home
+                  Large Bamboo Hanging Wall – Unique & Affordable Wall Art for Home
                 </h1>
               </div>
               <div
@@ -1570,7 +1630,7 @@ export default function ProductPage() {
                   detailRefs.current[7] = el;
                 }}
               >
-                <div className="flex items-center gap-2 mt-4">
+                <div className="flex items-center gap-2">
                   <span className="text-green-600 text-lg sm:text-xl">✔</span>
                   <span className="text-sm sm:text-[16px] tracking-[0.6px]">
                     Pickup available at{" "}
@@ -1588,12 +1648,12 @@ export default function ProductPage() {
                   <DrawerTrigger asChild>
                     <a
                       href="#"
-                      className="text-xs sm:text-sm underline text-gray-600 cursor-pointer"
+                      className="text-xs hover:text-red-500 underline text-gray-600 cursor-pointer"
                     >
                       View store information
                     </a>
                   </DrawerTrigger>
-                  <DrawerContent className="left-0 top-0 bottom-0 fixed w-full max-w-md rounded-none shadow-lg p-4 sm:p-8 flex flex-col justify-start items-start bg-white">
+                  <DrawerContent className="left-0 top-0 h-screen bottom-0 fixed w-full max-w-md md:max-w-[450px] rounded-none shadow-lg p-4 sm:p-8 flex flex-col justify-start items-start bg-white" style={{ fontFamily: 'Jost, sans-serif', fontSize: '16px', letterSpacing: '0.6px', lineHeight: '28.8px', textAlign: 'left', background: '#fff', maxWidth: '450px', padding: '50px' }}>
                     <DrawerTitle>
                       <VisuallyHidden>Store Information</VisuallyHidden>
                     </DrawerTitle>
@@ -1601,31 +1661,22 @@ export default function ProductPage() {
                       <X className="w-6 h-6 sm:w-7 sm:h-7" />
                     </DrawerClose>
                     <div id="store-info-animate" className="w-full">
-                      <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
-                        Large Bamboo Hanging Wall – Unique & Affordable Wall Art
-                        for Home
+                      <h2 className="text-2xl font-semibold text-gray-900 mb-2" style={{ fontFamily: 'dm-sans, sans-serif', fontSize: '25px', letterSpacing: '0.6px' }}>
+                        Large Bamboo Hanging Wall – Unique & Affordable Wall Art for Home
                       </h2>
-                      <div className="mb-2 text-base sm:text-lg">
-                        Color: Bamboo Natural
+                      <div className="mb-2 text-[14px] py-2" style={{ fontFamily: 'Jost, sans-serif' }}>
+                        Color: <span className="font-semibold">Bamboo Natural</span>
                       </div>
-                      <div className="mb-2 font-bold text-base sm:text-lg">
+                      <div className="mb-2 text-[20px] pb-2" style={{ fontFamily: 'dm-sans, sans-serif' }}>
                         Eco Bamboo
                       </div>
-                      <div className="flex items-center gap-2 mb-2 text-green-700 font-semibold text-sm sm:text-base">
-                        <Check className="w-4 h-4 sm:w-5 sm:h-5" /> Pickup
-                        available, usually ready in 24 hours
+                      <div className="flex items-center gap-2 mb-2 text-green-700 font-semibold text-[14px] tracking-[0.6px]" style={{ fontFamily: 'Jost, sans-serif' }}>
+                        <Check className="w-6 h-6 text-green-700" /> Pickup available, usually ready in 24 hours
                       </div>
-                      <div className="mb-2 text-sm sm:text-base">
-                        Eco Bambo
-                        <br />
-                        Karkhane wali abadi,Near pso pump petrol, Nazd Ali Niaz
-                        Sweet, Chakian,Phularwan
-                        <br />
-                        Bhalwal 40410
-                        <br />
-                        Pakistan
+                      <div className="mb-2 text-[14px] tracking-[0.6px]" style={{ fontFamily: 'Jost, sans-serif' }}>
+                        Eco Bambo<br />Karkhane wali abadi,Near pso pump petrol, Nazd Ali Niaz Sweet, Chakian,Phularwan<br />Bhalwal 40410<br />Pakistan
                       </div>
-                      <div className="mb-2 text-sm sm:text-base font-semibold">
+                      <div className="mb-2 font-semibold text-[14px] tracking-[0.6px]" style={{ fontFamily: 'Jost, sans-serif' }}>
                         +923478237147
                       </div>
                     </div>
@@ -1638,17 +1689,120 @@ export default function ProductPage() {
                 }}
               >
                 <div className="flex items-center gap-4 sm:gap-6 mt-4 sm:mt-6 flex-wrap">
-                  <div className="flex items-center gap-2">
+                  <div
+                    className="flex items-center gap-2 cursor-pointer"
+                    onClick={() => setShowReturnsModal(true)}
+                  >
                     <Truck className="w-4 h-4 sm:w-5 sm:h-5" />
                     <span className="text-sm sm:text-[14px] tracking-[0.6px] font-bold">
                       Delivery & Return
                     </span>
                   </div>
+
                   <div className="flex items-center gap-2">
-                    <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                    <span className="text-sm sm:text-[16px] leading-[0.6px]">
-                      Share
-                    </span>
+                    <div
+                      ref={shareBtnRef}
+                      className="relative flex items-center gap-2 cursor-pointer group"
+                      onClick={() => setShowSharePopover((v) => !v)}
+                      onMouseEnter={() => setShowSharePopover(true)}
+                      onMouseLeave={() => setShowSharePopover(false)}
+                      tabIndex={0}
+                    >
+                      <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                      <span className="text-sm sm:text-[16px] leading-[0.6px]">
+                        Share
+                      </span>
+                      {showSharePopover && (
+                        <div
+                          className="absolute left-1/2 -translate-x-1/2 bottom-full z-50"
+                          style={{ minWidth: "150px" }}
+                        >
+                          <div className="bg-black text-white rounded-full flex flex-col items-center text-center gap-0 px-2 py-2 shadow-lg">
+                            <div className="flex items-center gap-2">
+                              {/* Instagram */}
+                              <a
+                                href="https://www.instagram.com/ecobambo0?igsh=MWZ3Nmhzc3c2M29mZw%3D%3D"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label="Instagram"
+                                className="hover:text-[#B8860B]"
+                              >
+                                <svg
+                                  className="w-[14px] h-[14px] hover:text-[#B8860B] transition-colors duration-200"
+                                  fill="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path d="M21 8.306a5.985 5.985 0 0 1-3.293-1.003V15.5A5.5 5.5 0 1 1 12 10v2.25a3.25 3.25 0 1 0 3.25 3.25V2.5h2.25a3.25 3.25 0 0 0 3.25 3.25v2.556z" />
+                                </svg>
+                              </a>
+                              {/* Facebook */}
+                              <a
+                                href="https://www.facebook.com/Kashifartist01?rdid=xduZdkkjBrak3vd5&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1A4QUuQDso%2F#"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label="Facebook"
+                                className="hover:text-[#B8860B]"
+                              >
+                                <svg
+                                  className="w-[14px] h-[14px]"
+                                  fill="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path d="M17 2.1h-3.2C9.6 2.1 8 3.7 8 6.2v2.1H5.5a.5.5 0 0 0-.5.5v3.1c0 .3.2.5.5.5H8v8.1c0 .3.2.5.5.5h3.2c.3 0 .5-.2.5-.5v-8.1h2.2c.3 0 .5-.2.5-.5l.1-3.1a.5.5 0 0 0-.5-.5h-2.3V6.2c0-.5.1-.7.7-.7h1.6c.3 0 .5-.2.5-.5V2.6c0-.3-.2-.5-.5-.5z" />
+                                </svg>
+                              </a>
+                              {/* TikTok */}
+                              <a
+                                href="https://www.tiktok.com/@ecobambo0?_t=ZS-8vPdrvheMRW&_r=1"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label="TikTok"
+                              >
+                                <svg
+                                  className="w-[14px] h-[14px] hover:text-[#B8860B] transition-colors duration-200"
+                                  fill="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path d="M21 8.306a5.985 5.985 0 0 1-3.293-1.003V15.5A5.5 5.5 0 1 1 12 10v2.25a3.25 3.25 0 1 0 3.25 3.25V2.5h2.25a3.25 3.25 0 0 0 3.25 3.25v2.556z" />
+                                </svg>
+                              </a>
+                              {/* WhatsApp */}
+                              <a
+                                href="https://wa.me/+923416995870"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label="WhatsApp"
+                                className="hover:text-[#B8860B]"
+                              >
+                                <svg
+                                  className="w-[14px] h-[14px]"
+                                  fill="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path d="M12 2A10 10 0 0 0 2 12c0 1.7.4 3.3 1.2 4.7L2 22l5.4-1.2A10 10 0 1 0 12 2zm5.2 14.8c-.2.5-1.1 1-1.5 1.1-.4.1-.8.2-2.7-.6-2.3-.9-3.7-3.2-3.8-3.3-.1-.1-.9-1.2-.9-2.3 0-1.1.6-1.6.8-1.8.2-.2.4-.2.5-.2.1 0 .2 0 .3.2.1.2.4.7.5.9.1.2.1.3 0 .5-.1.1-.2.3-.3.4-.1.1-.2.2-.1.4.1.2.3.6.7 1 .5.6 1.1 1.1 1.7 1.3.2.1.3.1.4 0 .1-.1.4-.5.5-.7.1-.2.2-.2.4-.1.2.1 1.2.6 1.4.7.2.1.3.1.3.2.1.1.1.2.1.3z" />
+                                </svg>
+                              </a>
+                              {/* YouTube */}
+                              <a
+                                href="https://www.youtube.com/@EcoBambo"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label="YouTube"
+                                className="hover:text-[#B8860B]"
+                              >
+                                <svg
+                                  className="w-[14px] h-[14px] hover:text-[#B8860B] transition-colors duration-200"
+                                  fill="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path d="M21.8 8.001a2.75 2.75 0 0 0-1.94-1.94C18.2 6 12 6 12 6s-6.2 0-7.86.06a2.75 2.75 0 0 0-1.94 1.94A28.6 28.6 0 0 0 2 12a28.6 28.6 0 0 0 .2 3.999 2.75 2.75 0 0 0 1.94 1.94C5.8 18 12 18 12 18s6.2 0 7.86-.06a2.75 2.75 0 0 0 1.94-1.94A28.6 28.6 0 0 0 22 12a28.6 28.6 0 0 0-.2-3.999zM10 15.5v-7l6 3.5-6 3.5z" />
+                                </svg>
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1732,16 +1886,6 @@ export default function ProductPage() {
 
         {/* Scrolling Marquee */}
         <div className="w-full overflow-hidden whitespace-nowrap bg-white border-t border-[#B8860B] py-6">
-          <style jsx>{`
-            @keyframes marquee {
-              0% {
-                transform: translateX(0%);
-              }
-              100% {
-                transform: translateX(-50%);
-              }
-            }
-          `}</style>
           <div
             className="flex w-max animate-marquee"
             style={{
@@ -1749,28 +1893,26 @@ export default function ProductPage() {
             }}
           >
             {[
-              "!Off – Limited Time Only 15%",
-              "Shop Unique Wall Pieces Today",
+              "Today",
               "!Discounted Home Art – Hurry",
               "!Nationwide Free Delivery",
               "Order Now – Deal Ends Soon!",
-              "Free Shipping on Home Artwork",
+              "Free Shipping",
             ]
               .concat([
-                "!Off – Limited Time Only 15%",
-                "Shop Unique Wall Pieces Today",
+                "Today",
                 "!Discounted Home Art – Hurry",
                 "!Nationwide Free Delivery",
                 "Order Now – Deal Ends Soon!",
-                "Free Shipping on Home Artwork",
+                "Free Shipping",
               ])
               .map((item, i) => (
                 <span
                   key={i}
-                  className="inline-block mx-4 font-semibold text-gray-900"
+                  className="inline-block mx-4 text-[20px] italic font-medium text-black font-dm-sans"
                 >
                   {item}
-                  <span className="mx-2 text-gray-400 text-[20px] font-italic ">•</span>
+                  <span className="mx-4 text-[18px]">✨</span>
                 </span>
               ))}
           </div>
@@ -1785,20 +1927,25 @@ export default function ProductPage() {
               </h2>
             </div>
             <div className="max-w-4xl mx-auto">
-              <div className="relative aspect-video bg-gray-200 rounded-lg overflow-hidden">
-                <Image
-                  src="https://via.placeholder.com/800x400"
-                  alt="Assembly video thumbnail"
-                  fill
-                  className="object-cover"
-                />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Button
-                    size="lg"
-                    className="rounded-full w-12 h-12 sm:w-16 sm:h-16 bg-[#B8860B] hover:bg-black text-white"
-                  >
-                    <Play className="w-4 h-4 sm:w-6 sm:h-6 ml-1 text-[#B8860B]" />
-                  </Button>
+              <div
+                ref={videoRef}
+                className="relative aspect-video bg-gray-200 rounded-lg overflow-hidden"
+              >
+                <iframe
+                  width="560"
+                  height="315"
+                  src={`https://www.youtube.com/embed/tN9AVjaAXrg?si=T6rvzSMBvgJur8b_&mute=1${
+                    videoInView ? "&autoplay=1" : "&autoplay=0"
+                  }`}
+                  title="YouTube video player"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  allowFullScreen
+                  className="w-full h-full"
+                ></iframe>
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  {/* Optionally keep the play button overlay for style, but make it non-interactive */}
                 </div>
               </div>
             </div>
@@ -2093,13 +2240,13 @@ export default function ProductPage() {
           <div className="max-w-7xl mx-auto px-3 sm:px-4 grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 items-center">
             {/* Left: Text */}
             <div className="space-y-4 sm:space-y-6 md:pr-4 lg:pr-8">
-              <h2 className="font-dm-sans text-[40px] font-semibold leading-[1.25em] tracking-[-0.02em] text-gray-900 mb-2 text-left">
+              <h2 className="font-dm-sans text-[30px] text-center sm:text-left sm:text-[40px] font-semibold leading-[1.25em] tracking-[-0.02em] text-gray-900 mb-2 text-left">
                 Bathroom Art Decor
               </h2>
-              <h3 className="font-dm-sans text-[30px] font-semibold leading-[38px] text-gray-800 mb-3 sm:mb-4 text-left">
+              <h3 className="font-dm-sans text-[20px] text-center sm:text-left sm:text-[30px] font-semibold leading-[38px] text-gray-800 mb-3 sm:mb-4 text-left">
                 Compact Vertical Display Crafted for Tight Urban Spaces
               </h3>
-              <p className="font-dm-sans text-[20px] font-semibold leading-[1.25em] text-gray-700 mb-3 sm:mb-4 text-left">
+              <p className="font-dm-sans text-[12px] sm:text-[20px] font-semibold leading-[1.25em] text-gray-700 mb-3 sm:mb-4 text-left">
                 A compact bamboo hanging wall that blends natural warmth with
                 modern simplicity.
               </p>
@@ -2145,56 +2292,45 @@ export default function ProductPage() {
         <div className="py-8 sm:py-12">
           <div className="container mx-auto px-3 sm:px-4">
             <div className="relative">
-              <div className="grid md:grid-cols-2 gap-6 sm:gap-8 max-w-4xl mx-auto mt-12 sm:mt-16">
-                {/* Small Pot */}
-                <div
-                  ref={showcaseRefs[0]}
-                  className="flex gap-4 sm:gap-6 items-center"
-                >
-                  <div className="relative w-24 h-24 sm:w-32 sm:h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 max-w-7xl mx-auto mt-0">
+                <div ref={collageLeftRef} className="relative rounded-2xl overflow-hidden min-h-[400px] md:min-h-[500px] bg-[#f5f0e6] group flex flex-col justify-end">
+                  <div className="w-full h-full transition-transform duration-500 ease-in-out group-hover:scale-145">
                     <Image
-                      src={potImages[0]}
-                      alt="Small bamboo pot"
+                      src="/pic/Large Bamboo Hanging Wall/large-bamboo-hanging-wall-unique-affordable-wall-art-for-home-152452.jpg"
+                      alt="Large Wall Art"
                       fill
                       className="object-cover"
                     />
                   </div>
-                  <div className="space-y-2 sm:space-y-3">
-                    <h3 className="font-albert-sans text-[18px] font-semibold leading-[1.25em] text-gray-900">
-                      Small Pot
-                    </h3>
-                    <p className="font-albert-sans text-[18px] font-semibold leading-[1.25em] text-gray-600">
-                      A handcrafted small bamboo pot that ads charm to any plant
-                      display.
-                    </p>
-                    <button className="hover:text-blue-900 hover:underline hover:font-bold transition-all duration-300 z-1000 text-sm sm:text-base">
-                      Purchase Now
+                  <button className="absolute left-6 bottom-6 bg-white text-black font-bold rounded-full px-6 py-2 shadow-lg text-lg hover:bg-black hover:text-[#FFD700] transition">
+                    Shop Now
+                  </button>
+                </div>
+                <div className="flex flex-col gap-6 h-full">
+                  <div ref={collageTopRightRef} className="relative rounded-2xl overflow-hidden min-h-[195px] flex-1 bg-[#f5f0e6] group flex flex-col justify-end">
+                    <div className="w-full h-full transition-transform duration-500 ease-in-out group-hover:scale-145">
+                      <Image
+                        src="/pic/Big Bamboo Household Standing Plant Pot/eco-bambo-bamboo-big-flower-pot-red-big-bamboo-household-standing-plant-pot-perfect-for-home-garden-1155268441.jpg"
+                        alt="Red Bamboo Pot"
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <button className="absolute left-6 bottom-6 bg-white text-black font-bold rounded-full px-6 py-2 shadow-lg text-lg hover:bg-black hover:text-[#FFD700] transition">
+                      Shop Now
                     </button>
                   </div>
-                </div>
-                {/* Big Pot */}
-                <div
-                  ref={showcaseRefs[1]}
-                  className="flex gap-4 sm:gap-6 items-center"
-                >
-                  <div className="relative w-24 h-24 sm:w-32 sm:h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                    <Image
-                      src={potImages[1]}
-                      alt="Big bamboo pot"
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="space-y-2 sm:space-y-3">
-                    <h3 className="font-albert-sans text-[18px] font-semibold leading-[1.25em] text-gray-900">
-                      Big Pot
-                    </h3>
-                    <p className="font-albert-sans text-[18px] font-semibold leading-[1.25em] text-gray-600">
-                      Bamboo flower pot designed to elevate larger plant
-                      displays.
-                    </p>
-                    <button className="hover:text-blue-900 hover:underline hover:font-bold transition-all duration-300 z-1000 text-sm sm:text-base">
-                      Purchase Now
+                  <div ref={collageBottomRightRef} className="relative rounded-2xl overflow-hidden min-h-[195px] flex-1 bg-[#f5f0e6] group flex flex-col justify-end">
+                    <div className="w-full h-full transition-transform duration-500 ease-in-out group-hover:scale-145">
+                      <Image
+                        src="/pic/Big Bamboo Household Standing Plant Pot/big-bamboo-household-standing-plant-pot-perfect-for-home-garden-118593.jpg"
+                        alt="Standing Plant Pot"
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <button className="absolute left-6 bottom-6 bg-white text-black font-bold rounded-full px-6 py-2 shadow-lg text-lg hover:bg-black hover:text-[#FFD700] transition">
+                      Shop Now
                     </button>
                   </div>
                 </div>
@@ -2254,7 +2390,7 @@ export default function ProductPage() {
           </h1>
           <h2
             ref={popularHeadingRef}
-            className="font-dm-sans font-bold text-[48px] leading-[23px] tracking-[0.63px] text-center mb-8 sm:mb-12 px-3 sm:px-4"
+            className="font-dm-sans font-bold text-[16px] sm:text-[48px] leading-[23px] tracking-[0.63px] text-center mb-8 sm:mb-12 px-3 sm:px-4"
           >
             All Time <span className="text-[#B8860B]">Popular</span> Products
           </h2>
@@ -2373,6 +2509,307 @@ export default function ProductPage() {
           </div>
         </div>
       </div>
+
+      {/* Returns & Exchanges Policy Modal */}
+      {showReturnsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div
+            className="relative w-full max-w-4xl max-h-[90vh] mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden transform transition-all duration-700 ease-out"
+            style={{
+              animation: "modalSlideIn 0.7s ease-out",
+            }}
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setShowReturnsModal(false)}
+              className="absolute top-4 right-4 z-10 bg-white/90 backdrop-blur-sm rounded-full p-2 hover:bg-gray-100 transition-all duration-300 shadow-lg"
+            >
+              <X className="w-6 h-6 text-gray-600" />
+            </button>
+
+            {/* Modal Content */}
+            <div className="p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
+              <h2 className="font-albert-sans text-[20px] font-bold text-gray-900 mb-6 text-center">
+                Returns & Exchanges Policy
+              </h2>
+
+              <div className="font-albert-sans text-[14px] leading-relaxed text-gray-700 space-y-4">
+                <p>
+                  At Eco Bamboo, we are committed to providing high-quality,
+                  eco-friendly products. If you are not satisfied with your
+                  purchase, you can request a return or refund based on the
+                  conditions outlined below.
+                </p>
+
+                <div>
+                  <h3 className="font-albert-sans text-[16px] font-bold text-gray-900 mb-2">
+                    1. Return Policy
+                  </h3>
+                  <p className="mb-2">
+                    We offer a flexible return policy for both domestic and
+                    international orders:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 ml-4">
+                    <li>
+                      <strong>Pakistan Orders:</strong> Returns must be
+                      requested within 7 to 14 days of receiving the product.
+                    </li>
+                    <li>
+                      <strong>International Orders:</strong> Returns must be
+                      requested within 15 to 30 days of receiving the product.
+                    </li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="font-albert-sans text-[16px] font-bold text-gray-900 mb-2">
+                    Return Request Deadline:
+                  </h3>
+                  <ul className="list-disc list-inside space-y-1 ml-4">
+                    <li>
+                      You must initiate your return request within 2 to 3 days
+                      of receiving the order.
+                    </li>
+                    <li>
+                      Requests submitted after 3 days will not be accepted.
+                    </li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="font-albert-sans text-[16px] font-bold text-gray-900 mb-2">
+                    Eligibility for Returns
+                  </h3>
+                  <p className="mb-2">
+                    To be eligible for a return, your item must:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 ml-4">
+                    <li>Be unused, unworn, and in its original packaging</li>
+                    <li>
+                      Include tags, accessories, and proof of purchase (receipt
+                      or order confirmation)
+                    </li>
+                    <li>Be returned for one of the following valid reasons:</li>
+                    <ul className="list-disc list-inside space-y-1 ml-8 mt-1">
+                      <li>Damaged product received</li>
+                      <li>Color difference from what was ordered</li>
+                      <li>Size issue</li>
+                      <li>Other solid reasons approved by our team</li>
+                    </ul>
+                  </ul>
+                  <p className="mt-2">
+                    <strong>Return Proof Requirement:</strong> Customers must
+                    provide photo or video evidence of the issue before the
+                    return is approved.
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="font-albert-sans text-[16px] font-bold text-gray-900 mb-2">
+                    How to Request a Return:
+                  </h3>
+                  <p>
+                    Email us at{" "}
+                    <a
+                      href="mailto:ecobambooarts@gmail.com"
+                      className="text-blue-600 hover:underline"
+                    >
+                      ecobambooarts@gmail.com
+                    </a>{" "}
+                    with your order number and proof of the issue.
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="font-albert-sans text-[16px] font-bold text-gray-900 mb-2">
+                    Return Address:
+                  </h3>
+                  <p className="bg-gray-50 p-3 rounded-lg">
+                    Bamboohandicrafts, Near PSO Petrol Pump Chakian, Shop Number
+                    35, Karkhane Wali Abadi, Near Ali Niaz Sweet, Chakian,
+                    Karkhane Wali Abadi, Dakkhana Khas, Dhori, Tehsil Bhalwal,
+                    District Sargodha, Postal Code 40100, Phularwa 40410,
+                    Pakistan.
+                  </p>
+                  <p className="mt-2 text-sm text-red-600">
+                    <strong>Important:</strong> Items sent back without prior
+                    approval will not be accepted.
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="font-albert-sans text-[16px] font-bold text-gray-900 mb-2">
+                    2. Damages & Issues
+                  </h3>
+                  <p>
+                    Please inspect your order upon delivery. If your item is
+                    damaged, defective, or incorrect, contact us immediately at{" "}
+                    <a
+                      href="mailto:ecobambooarts@gmail.com"
+                      className="text-blue-600 hover:underline"
+                    >
+                      ecobambooarts@gmail.com
+                    </a>{" "}
+                    or call us at{" "}
+                    <a
+                      href="tel:+923416995870"
+                      className="text-blue-600 hover:underline"
+                    >
+                      +92 341 6995870
+                    </a>{" "}
+                    so we can resolve the issue.
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="font-albert-sans text-[16px] font-bold text-gray-900 mb-2">
+                    3. Non-Returnable Items
+                  </h3>
+                  <p className="mb-2">
+                    Certain items cannot be returned, including:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 ml-4">
+                    <li>Used or washed items</li>
+                  </ul>
+                  <p className="mt-2">
+                    If you have any questions about the return eligibility of
+                    your item, please contact us before initiating a return.
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="font-albert-sans text-[16px] font-bold text-gray-900 mb-2">
+                    4. Exchange Policy
+                  </h3>
+                  <p className="mb-2">
+                    If you need a different size or color, the fastest way to
+                    get the right product is to:
+                  </p>
+                  <ol className="list-decimal list-inside space-y-1 ml-4">
+                    <li>Request a return for your current item</li>
+                    <li>
+                      Once approved, place a new order for the correct product
+                    </li>
+                  </ol>
+                  <p className="mt-2">
+                    Exchanges will be processed only after we receive and
+                    inspect the returned item.
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="font-albert-sans text-[16px] font-bold text-gray-900 mb-2">
+                    5. Refund Process
+                  </h3>
+                  <p className="mb-2">
+                    Once we receive and inspect your returned item, we will
+                    notify you about the refund approval status.
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 ml-4">
+                    <li>
+                      <strong>Approved Refunds:</strong> The amount will be
+                      refunded to your original payment method within 10
+                      business days.
+                    </li>
+                    <li>
+                      <strong>Processing Time:</strong> Some banks or credit
+                      card companies may take additional time to process the
+                      refund.
+                    </li>
+                  </ul>
+                  <p className="mt-2">
+                    If 15 business days have passed since your refund was
+                    approved and you haven't received it, please contact us at{" "}
+                    <a
+                      href="mailto:ecobambooarts@gmail.com"
+                      className="text-blue-600 hover:underline"
+                    >
+                      ecobambooarts@gmail.com
+                    </a>{" "}
+                    or call us at{" "}
+                    <a
+                      href="tel:+923416995870"
+                      className="text-blue-600 hover:underline"
+                    >
+                      +92 341 6995870
+                    </a>
+                    .
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="font-albert-sans text-[16px] font-bold text-gray-900 mb-2">
+                    Need Help?
+                  </h3>
+                  <p className="mb-2">
+                    For any return or refund-related queries, feel free to
+                    contact us:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 ml-4">
+                    <li>
+                      <strong>Email:</strong>{" "}
+                      <a
+                        href="mailto:ecobambooarts@gmail.com"
+                        className="text-blue-600 hover:underline"
+                      >
+                        ecobambooarts@gmail.com
+                      </a>
+                    </li>
+                    <li>
+                      <strong>Phone:</strong>{" "}
+                      <a
+                        href="tel:+923416995870"
+                        className="text-blue-600 hover:underline"
+                      >
+                        +92 341 6995870
+                      </a>
+                    </li>
+                  </ul>
+                  <p className="mt-2">
+                    <strong>Return Address:</strong>
+                  </p>
+                  <p className="bg-gray-50 p-3 rounded-lg">
+                    Bamboohandicrafts, Near PSO Petrol Pump Chakian, Shop Number
+                    35, Karkhane Wali Abadi, Near Ali Niaz Sweet, Chakian,
+                    Karkhane Wali Abadi, Dakkhana Khas, Dhori, Tehsil Bhalwal,
+                    District Sargodha, Postal Code 40100, Phularwa 40410,
+                    Pakistan.
+                  </p>
+                  <p className="mt-4 text-center font-semibold text-gray-900">
+                    We are happy to assist you!
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style jsx>{`
+        @keyframes marquee {
+          0% {
+            transform: translateX(0%);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
+        }
+
+        @keyframes modalSlideIn {
+          0% {
+            opacity: 0;
+            transform: scale(0.8) rotateY(0deg);
+          }
+          50% {
+            opacity: 0.8;
+            transform: scale(0.9) rotateY(180deg);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1) rotateY(360deg);
+          }
+        }
+      `}</style>
     </>
   );
 }
